@@ -1,0 +1,55 @@
+[project]
+name = "nexus-backend"
+version = "0.1.0"
+description = "Nexus AI — multimodal research assistant backend"
+requires-python = ">=3.12"
+
+# ════════════════════════════════════════════════════════════
+#  Ruff — fast linter (replaces flake8, isort, and more)
+# ════════════════════════════════════════════════════════════
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort, B: bugbear,
+# UP: pyupgrade, C4: comprehensions, SIM: simplify
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM"]
+ignore = [
+    "E501",  # line length is handled by Black
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# ════════════════════════════════════════════════════════════
+#  Black — opinionated formatter
+# ════════════════════════════════════════════════════════════
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+# ════════════════════════════════════════════════════════════
+#  mypy — static type checking
+# ════════════════════════════════════════════════════════════
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+ignore_missing_imports = true  # relaxed for third-party libs without stubs
+
+# ════════════════════════════════════════════════════════════
+#  pytest
+# ════════════════════════════════════════════════════════════
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers"
