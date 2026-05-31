@@ -35,6 +35,9 @@ target-version = ["py312"]
 # ════════════════════════════════════════════════════════════
 [tool.mypy]
 python_version = "3.12"
+# The Pydantic plugin teaches mypy how Pydantic models and settings work
+# (e.g. that fields are populated from the environment, not the constructor).
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -42,7 +45,9 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+# Disabled because a few `# type: ignore` comments are required only in some
+# environments (where third-party stubs are present) and unused in others.
+warn_unused_ignores = false
 ignore_missing_imports = true  # relaxed for third-party libs without stubs
 
 # ════════════════════════════════════════════════════════════
@@ -53,4 +58,3 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
-pythonpath = ["."]
