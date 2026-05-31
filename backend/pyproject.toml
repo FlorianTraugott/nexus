@@ -53,3 +53,4 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
+pythonpath = ["."]
