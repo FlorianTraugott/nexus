@@ -1,26 +1,37 @@
-"""Nexus AI — application entry point.
+"""FastAPI application factory."""
 
-PART 1 NOTE
------------
-This is a deliberately minimal placeholder so the Docker stack boots and CI
-has something to import. It is REPLACED in Part 2 with a proper application
-factory (`create_app()`), typed settings, structured logging, and a database
-connection. Do not build on this file directly — treat it as a smoke test that
-the container, port mapping, and CI all work end to end.
-"""
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-app = FastAPI(title="Nexus AI", version="0.1.0")
+from app.api import health
+from app.core.config import get_settings
+from app.core.logging import configure_logging, get_logger
+from app.db.session import engine
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    """Liveness probe. Returns 200 if the process is up."""
-    return {"status": "ok"}
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    log = get_logger(__name__)
+    log.info("startup", environment=get_settings().ENVIRONMENT)
+    yield
+    await engine.dispose()
+    log.info("shutdown")
 
 
-@app.get("/")
-def root() -> dict[str, str]:
-    """Placeholder root. Confirms the stack is wired correctly."""
-    return {"message": "Nexus AI is running. Real app arrives in Part 2."}
+def create_app() -> FastAPI:
+    configure_logging()
+    settings = get_settings()
+    app = FastAPI(
+        title="Nexus AI",
+        version="0.1.0",
+        description="Multimodal AI research assistant.",
+        debug=settings.DEBUG,
+        lifespan=lifespan,
+    )
+    app.include_router(health.router)
+    return app
+
+
+app = create_app()

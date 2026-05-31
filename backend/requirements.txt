@@ -1,10 +1,17 @@
-# ─── Part 1: minimal runtime to boot the stack ─────────────
-# This list grows in later parts:
-#   Part 2 adds: pydantic-settings, sqlalchemy[asyncio], asyncpg, alembic, structlog
-#   Part 3 adds: passlib[bcrypt], python-jose[cryptography], slowapi
-#   Part 4 adds: langchain, chromadb, pypdf, openai, etc.
+# ─── Core runtime ──────────────────────────────────────────
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
+
+# ─── Part 2: configuration, database, logging ──────────────
+pydantic==2.10.3
+pydantic-settings==2.7.0
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+structlog==24.4.0
+# This list grows in later parts:
+#   Part 3 adds: passlib[bcrypt], python-jose[cryptography], slowapi
+#   Part 4 adds: langchain, chromadb, pypdf, openai, etc.
 
 # ─── Dev / quality tooling ─────────────────────────────────
 ruff==0.8.2
