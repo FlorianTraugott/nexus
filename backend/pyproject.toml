@@ -4,46 +4,28 @@ version = "0.1.0"
 description = "Nexus AI — multimodal research assistant backend"
 requires-python = ">=3.12"
 
-# ════════════════════════════════════════════════════════════
-#  Ruff — fast linter (replaces flake8, isort, and more)
-# ════════════════════════════════════════════════════════════
 [tool.ruff]
 target-version = "py312"
 line-length = 88
 src = ["app", "tests"]
-# Auto-generated migration files are not hand-written, so don't lint them.
 extend-exclude = ["alembic/versions"]
-# Honour the exclude even when pre-commit passes file paths explicitly.
 force-exclude = true
 
 [tool.ruff.lint]
-# E/W: pycodestyle, F: pyflakes, I: isort, B: bugbear,
-# UP: pyupgrade, C4: comprehensions, SIM: simplify
 select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM"]
-ignore = [
-    "E501",  # line length is handled by Black
-]
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
-# ════════════════════════════════════════════════════════════
-#  Black — opinionated formatter
-# ════════════════════════════════════════════════════════════
 [tool.black]
 line-length = 88
 target-version = ["py312"]
 extend-exclude = "alembic/versions"
-# Honour the exclude even when pre-commit passes file paths explicitly.
 force-exclude = "alembic/versions"
 
-# ════════════════════════════════════════════════════════════
-#  mypy — static type checking
-# ════════════════════════════════════════════════════════════
 [tool.mypy]
 python_version = "3.12"
-# The Pydantic plugin teaches mypy how Pydantic models and settings work
-# (e.g. that fields are populated from the environment, not the constructor).
 plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
@@ -52,19 +34,12 @@ disallow_incomplete_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
-# Disabled because a few `# type: ignore` comments are required only in some
-# environments (where third-party stubs are present) and unused in others.
 warn_unused_ignores = false
-ignore_missing_imports = true  # relaxed for third-party libs without stubs
+ignore_missing_imports = true
 
-# ════════════════════════════════════════════════════════════
-#  pytest
-# ════════════════════════════════════════════════════════════
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
-# Put the backend root on the import path so `from app... import ...` works
-# whether pytest is invoked as `pytest` (CI, make test) or `python -m pytest`.
 pythonpath = ["."]

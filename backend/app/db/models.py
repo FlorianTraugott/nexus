@@ -1,17 +1,4 @@
-"""ORM models for the core domain.
-
-Relationships:
-- A User has many Conversations and many Documents.
-- A Conversation has many Messages.
-- Deleting a User cascades to their Conversations, Messages, and Documents
-  (enforced both at the ORM level via cascade and at the DB level via
-  ondelete="CASCADE").
-
-The string enums (MessageRole, etc.) are stored as plain VARCHAR with a CHECK
-constraint (native_enum=False) rather than a PostgreSQL ENUM type. This keeps
-migrations simple — adding a new allowed value is a constraint change, not a
-fragile database-level enum alteration.
-"""
+"""Core ORM models."""
 
 import enum
 import uuid
@@ -23,16 +10,12 @@ from app.db.base import Base, TimestampMixin, UUIDMixin
 
 
 class MessageRole(enum.StrEnum):
-    """Who authored a chat message."""
-
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
 
 
 class DocumentSourceType(enum.StrEnum):
-    """Where an ingested document came from."""
-
     PDF = "pdf"
     TEXT = "text"
     YOUTUBE = "youtube"
@@ -40,8 +23,6 @@ class DocumentSourceType(enum.StrEnum):
 
 
 class DocumentStatus(enum.StrEnum):
-    """Lifecycle state of a document in the ingestion pipeline."""
-
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
