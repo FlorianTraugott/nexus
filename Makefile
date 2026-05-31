@@ -3,7 +3,7 @@
 #  Run `make help` to see all commands.
 # ════════════════════════════════════════════════════════════
 
-.PHONY: help up down build logs dev lint format test hooks clean
+.PHONY: help up down build logs dev lint format test hooks clean migrate upgrade downgrade
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -32,6 +32,15 @@ format:  ## Auto-format code
 
 test:  ## Run the test suite
 	cd backend && pytest
+
+migrate:  ## Generate a migration from model changes (usage: make migrate MSG="description")
+	docker compose exec backend alembic revision --autogenerate -m "$(MSG)"
+
+upgrade:  ## Apply all pending migrations
+	docker compose exec backend alembic upgrade head
+
+downgrade:  ## Roll back the most recent migration
+	docker compose exec backend alembic downgrade -1
 
 hooks:  ## Install pre-commit git hooks
 	pre-commit install

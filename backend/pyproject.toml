@@ -11,6 +11,10 @@ requires-python = ">=3.12"
 target-version = "py312"
 line-length = 88
 src = ["app", "tests"]
+# Auto-generated migration files are not hand-written, so don't lint them.
+extend-exclude = ["alembic/versions"]
+# Honour the exclude even when pre-commit passes file paths explicitly.
+force-exclude = true
 
 [tool.ruff.lint]
 # E/W: pycodestyle, F: pyflakes, I: isort, B: bugbear,
@@ -29,6 +33,9 @@ known-first-party = ["app"]
 [tool.black]
 line-length = 88
 target-version = ["py312"]
+extend-exclude = "alembic/versions"
+# Honour the exclude even when pre-commit passes file paths explicitly.
+force-exclude = "alembic/versions"
 
 # ════════════════════════════════════════════════════════════
 #  mypy — static type checking
@@ -58,3 +65,6 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
+# Put the backend root on the import path so `from app... import ...` works
+# whether pytest is invoked as `pytest` (CI, make test) or `python -m pytest`.
+pythonpath = ["."]
