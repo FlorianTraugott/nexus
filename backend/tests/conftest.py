@@ -10,5 +10,6 @@ os.environ.update(
         "POSTGRES_PASSWORD": "test",
         "POSTGRES_DB": "test",
         "POSTGRES_HOST": "localhost",
+        "JWT_SECRET_KEY": "test-secret-key-not-for-production",
     }
 )
