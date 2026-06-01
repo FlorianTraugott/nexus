@@ -1,19 +1,22 @@
-# ─── Core runtime ──────────────────────────────────────────
+# Core runtime
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 
-# ─── Part 2: configuration, database, logging ──────────────
+# Configuration, database, logging
 pydantic==2.10.3
 pydantic-settings==2.7.0
 sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0
 alembic==1.14.0
 structlog==24.4.0
-# This list grows in later parts:
-#   Part 3 adds: passlib[bcrypt], python-jose[cryptography], slowapi
-#   Part 4 adds: langchain, chromadb, pypdf, openai, etc.
 
-# ─── Dev / quality tooling ─────────────────────────────────
+# Auth & security
+bcrypt==4.2.1
+pyjwt==2.10.1
+email-validator==2.2.0
+slowapi==0.1.9
+
+# Dev / quality tooling
 ruff==0.8.2
 black==24.10.0
 mypy==1.13.0
@@ -21,3 +24,4 @@ pre-commit==4.0.1
 pytest==8.3.4
 pytest-asyncio==0.24.0
 httpx==0.28.1
+aiosqlite==0.20.0

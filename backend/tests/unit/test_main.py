@@ -22,3 +22,9 @@ def test_openapi_schema_exposes_title() -> None:
 def test_docs_available() -> None:
     response = client.get("/docs")
     assert response.status_code == 200
+
+
+def test_security_headers_present() -> None:
+    response = client.get("/health")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
