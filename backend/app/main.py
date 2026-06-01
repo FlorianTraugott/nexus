@@ -9,6 +9,7 @@ from app.api import health
 from app.api.v1 import auth
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.core.middleware import configure_middleware
 from app.db.session import engine
 
 
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(auth.router, prefix="/api/v1")
+    configure_middleware(app)
     return app
 
 

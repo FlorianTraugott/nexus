@@ -5,11 +5,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.config import get_settings
+from app.core.middleware import limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -41,8 +42,9 @@ async def _issue_token_pair(db: AsyncSession, user_id: uuid.UUID) -> Token:
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def register(
-    payload: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]
+    request: Request, payload: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> User:
     if await user_repo.get_user_by_email(db, payload.email) is not None:
         raise HTTPException(
@@ -56,8 +58,9 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("10/minute")
 async def login(
-    payload: UserLogin, db: Annotated[AsyncSession, Depends(get_db)]
+    request: Request, payload: UserLogin, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> Token:
     user = await user_repo.get_user_by_email(db, payload.email)
     if user is None or not verify_password(payload.password, user.hashed_password):
