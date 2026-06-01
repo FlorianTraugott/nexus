@@ -41,4 +41,11 @@ repos:
     hooks:
       - id: mypy
         files: ^backend/app/
-        additional_dependencies: ["fastapi", "pydantic"]
+        additional_dependencies:
+          - fastapi
+          - pydantic
+          - pydantic-settings
+          - sqlalchemy[asyncio]
+          - structlog
+          - pyjwt
+          - bcrypt
