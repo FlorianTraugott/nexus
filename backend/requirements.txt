@@ -14,6 +14,7 @@ structlog==24.4.0
 bcrypt==4.2.1
 pyjwt==2.10.1
 email-validator==2.2.0
+slowapi==0.1.9
 
 # Dev / quality tooling
 ruff==0.8.2
