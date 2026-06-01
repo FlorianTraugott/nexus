@@ -1,5 +1,6 @@
 """Password hashing and JSON Web Token helpers."""
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -15,6 +16,10 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(password.encode(), password_hash.encode())
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def _create_token(subject: str, token_type: str, expires_delta: timedelta) -> str:
