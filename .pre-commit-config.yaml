@@ -50,3 +50,4 @@ repos:
           - pyjwt
           - bcrypt
           - types-aiofiles
+          - pypdf
