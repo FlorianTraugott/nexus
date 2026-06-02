@@ -20,6 +20,7 @@ slowapi==0.1.9
 aiofiles==25.1.0
 pypdf==5.9.0
 pillow==12.1.1
+python-multipart==0.0.30
 
 # Dev / quality tooling
 ruff==0.8.2

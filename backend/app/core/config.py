@@ -31,6 +31,8 @@ class Settings(BaseSettings):
 
     UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE_MB: int = 25
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 200
 
     @computed_field  # type: ignore[prop-decorator]
     @property
