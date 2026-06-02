@@ -124,6 +124,11 @@ class Document(UUIDMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    images: Mapped[list["DocumentImage"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class DocumentChunk(UUIDMixin, TimestampMixin, Base):
@@ -137,3 +142,18 @@ class DocumentChunk(UUIDMixin, TimestampMixin, Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     document: Mapped["Document"] = relationship(back_populates="chunks")
+
+
+class DocumentImage(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "document_images"
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    # 0-based page the image was found on
+    page_number: Mapped[int] = mapped_column(nullable=False)
+    # position within the document, across all pages, starting at 0
+    image_index: Mapped[int] = mapped_column(nullable=False)
+    storage_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+
+    document: Mapped["Document"] = relationship(back_populates="images")
