@@ -119,3 +119,21 @@ class Document(UUIDMixin, TimestampMixin, Base):
     chunk_count: Mapped[int] = mapped_column(default=0, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="documents")
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class DocumentChunk(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "document_chunks"
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    # position of this chunk within its document, starting at 0
+    chunk_index: Mapped[int] = mapped_column(nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    document: Mapped["Document"] = relationship(back_populates="chunks")
