@@ -49,3 +49,6 @@ repos:
           - structlog
           - pyjwt
           - bcrypt
+          - types-aiofiles
+          - pypdf
+          - pillow
