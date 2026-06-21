@@ -22,6 +22,9 @@ pypdf==5.9.0
 pillow==12.1.1
 python-multipart==0.0.30
 
+# RAG: embeddings
+openai==1.109.1
+
 # Dev / quality tooling
 ruff==0.8.2
 black==24.10.0
