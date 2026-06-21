@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 1536
     OPENAI_API_KEY: str = ""
 
+    CHROMA_PERSIST_DIR: str = "chroma"
+    CHROMA_COLLECTION: str = "nexus_chunks"
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
