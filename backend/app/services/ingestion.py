@@ -7,12 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.db.models import DocumentSourceType, DocumentStatus
+from app.db.models import Document, DocumentChunk, DocumentSourceType, DocumentStatus
 from app.db.repositories import document as document_repo
 from app.db.session import AsyncSessionLocal
 from app.services import images as image_service
 from app.services import parser, storage
 from app.services.chunker import chunk_text
+from app.services.embeddings import EmbeddingProvider, get_embedding_provider
+from app.services.vector_store import VectorStore, get_vector_store
 
 log = get_logger(__name__)
 
@@ -23,10 +25,19 @@ async def ingest_document(document_id: uuid.UUID) -> None:
         await run_ingestion(session, document_id)
 
 
-async def run_ingestion(session: AsyncSession, document_id: uuid.UUID) -> None:
+async def run_ingestion(
+    session: AsyncSession,
+    document_id: uuid.UUID,
+    embedder: EmbeddingProvider | None = None,
+    store: VectorStore | None = None,
+) -> None:
     document = await document_repo.get_document(session, document_id)
     if document is None:
         return
+
+    # Resolve providers lazily so callers (and tests) can inject fakes.
+    embedder = embedder or get_embedding_provider()
+    store = store or get_vector_store()
 
     document.status = DocumentStatus.PROCESSING
     await session.commit()
@@ -37,7 +48,8 @@ async def run_ingestion(session: AsyncSession, document_id: uuid.UUID) -> None:
         # Parsing is CPU-bound, so keep it off the event loop.
         text = await asyncio.to_thread(parser.extract_text, path, document.source_type)
         chunks = chunk_text(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
-        await document_repo.replace_chunks(session, document.id, chunks)
+        chunk_rows = await document_repo.replace_chunks(session, document.id, chunks)
+        await _index_chunks(store, embedder, document, chunk_rows)
 
         if document.source_type == DocumentSourceType.PDF:
             extracted = await asyncio.to_thread(
@@ -62,3 +74,35 @@ async def run_ingestion(session: AsyncSession, document_id: uuid.UUID) -> None:
         if document is not None:
             document.status = DocumentStatus.FAILED
             await session.commit()
+
+
+async def _index_chunks(
+    store: VectorStore,
+    embedder: EmbeddingProvider,
+    document: Document,
+    chunk_rows: list[DocumentChunk],
+) -> None:
+    """Embed a document's chunks and (re)index them in the vector store.
+
+    Clearing first keeps the store consistent with the freshly inserted rows,
+    whose ids change on every re-ingestion.
+    """
+    # Chroma's client is synchronous, so run it off the event loop.
+    await asyncio.to_thread(store.delete_by_document, document.id)
+    if not chunk_rows:
+        return
+    embeddings = await embedder.embed_texts([chunk.content for chunk in chunk_rows])
+    await asyncio.to_thread(
+        store.add,
+        [str(chunk.id) for chunk in chunk_rows],
+        embeddings,
+        [chunk.content for chunk in chunk_rows],
+        [
+            {
+                "document_id": str(document.id),
+                "user_id": str(document.user_id),
+                "chunk_index": chunk.chunk_index,
+            }
+            for chunk in chunk_rows
+        ],
+    )

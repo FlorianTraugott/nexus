@@ -49,15 +49,18 @@ async def delete_document(db: AsyncSession, document: Document) -> None:
 
 async def replace_chunks(
     db: AsyncSession, document_id: uuid.UUID, contents: list[str]
-) -> None:
+) -> list[DocumentChunk]:
+    """Replace a document's chunks and return the freshly created rows."""
     await db.execute(
         delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
     )
-    db.add_all(
+    chunks = [
         DocumentChunk(document_id=document_id, chunk_index=index, content=content)
         for index, content in enumerate(contents)
-    )
+    ]
+    db.add_all(chunks)
     await db.flush()
+    return chunks
 
 
 async def replace_images(
