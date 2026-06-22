@@ -47,6 +47,16 @@ async def delete_document(db: AsyncSession, document: Document) -> None:
     await db.delete(document)
 
 
+async def get_chunks_by_ids(
+    db: AsyncSession, ids: list[uuid.UUID]
+) -> list[DocumentChunk]:
+    """Fetch chunks by id in one query; rows come back in arbitrary order."""
+    if not ids:
+        return []
+    result = await db.execute(select(DocumentChunk).where(DocumentChunk.id.in_(ids)))
+    return list(result.scalars().all())
+
+
 async def replace_chunks(
     db: AsyncSession, document_id: uuid.UUID, contents: list[str]
 ) -> list[DocumentChunk]:

@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 25
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
+    RAG_TOP_K: int = 5
 
     EMBEDDING_PROVIDER: str = "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
