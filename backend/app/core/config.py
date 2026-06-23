@@ -44,7 +44,8 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "chroma"
     CHROMA_COLLECTION: str = "nexus_chunks"
 
-    LLM_PROVIDER: str = "claude"
+    LLM_PROVIDER: str = "openai"
+    GENERATION_MODEL: str = "gpt-4.1-mini"
     LLM_MODEL: str = "claude-haiku-4-5-20251001"
     LLM_MAX_TOKENS: int = 1024
     ANTHROPIC_API_KEY: str = ""

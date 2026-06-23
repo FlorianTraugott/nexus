@@ -8,6 +8,7 @@ from tests.fakes import FakeGenerationProvider
 
 from app.services.generation import (
     ClaudeGenerationProvider,
+    OpenAIGenerationProvider,
     build_prompt,
     get_generation_provider,
 )
@@ -61,6 +62,30 @@ async def test_claude_provider_sends_prompts_and_joins_text(monkeypatch) -> None
     assert captured["max_tokens"] == 128
     assert captured["system"] == "the system"
     assert captured["messages"] == [{"role": "user", "content": "the question"}]
+
+
+async def test_openai_provider_sends_prompts_and_returns_text(monkeypatch) -> None:
+    captured: dict = {}
+
+    async def fake_create(**kwargs):
+        captured.update(kwargs)
+        message = SimpleNamespace(content="grounded answer")
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    provider = OpenAIGenerationProvider(
+        api_key="x", model="gpt-4.1-mini", max_tokens=64
+    )
+    monkeypatch.setattr(provider._client.chat.completions, "create", fake_create)
+
+    answer = await provider.generate("the system", "the question")
+
+    assert answer == "grounded answer"
+    assert captured["model"] == "gpt-4.1-mini"
+    assert captured["max_tokens"] == 64
+    assert captured["messages"] == [
+        {"role": "system", "content": "the system"},
+        {"role": "user", "content": "the question"},
+    ]
 
 
 def test_get_generation_provider_rejects_unknown(monkeypatch) -> None:

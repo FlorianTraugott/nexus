@@ -1,9 +1,9 @@
 """Generation providers: turn a question + retrieved context into an answer.
 
 Callers depend only on the GenerationProvider protocol, so the concrete
-backend (Claude today) can be swapped via config without touching them.
-Prompt assembly lives in build_prompt — a pure function, so the grounding
-rules can be tested without calling any model.
+backend (OpenAI by default, Claude optional) can be swapped via config
+without touching them. Prompt assembly lives in build_prompt — a pure
+function, so the grounding rules can be tested without calling any model.
 """
 
 from functools import lru_cache
@@ -11,6 +11,7 @@ from typing import Protocol
 
 from anthropic import AsyncAnthropic
 from anthropic.types import TextBlock
+from openai import AsyncOpenAI
 
 from app.core.config import get_settings
 
@@ -42,6 +43,26 @@ class GenerationProvider(Protocol):
         ...
 
 
+class OpenAIGenerationProvider:
+    """Generation backed by OpenAI chat completion models."""
+
+    def __init__(self, api_key: str, model: str, max_tokens: int) -> None:
+        self._client = AsyncOpenAI(api_key=api_key)
+        self._model = model
+        self._max_tokens = max_tokens
+
+    async def generate(self, system: str, prompt: str) -> str:
+        response = await self._client.chat.completions.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response.choices[0].message.content or ""
+
+
 class ClaudeGenerationProvider:
     """Generation backed by Anthropic's Claude models."""
 
@@ -66,6 +87,12 @@ class ClaudeGenerationProvider:
 def get_generation_provider() -> GenerationProvider:
     """Build the configured provider once and reuse it across requests."""
     settings = get_settings()
+    if settings.LLM_PROVIDER == "openai":
+        return OpenAIGenerationProvider(
+            api_key=settings.OPENAI_API_KEY,
+            model=settings.GENERATION_MODEL,
+            max_tokens=settings.LLM_MAX_TOKENS,
+        )
     if settings.LLM_PROVIDER == "claude":
         return ClaudeGenerationProvider(
             api_key=settings.ANTHROPIC_API_KEY,
