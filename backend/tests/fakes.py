@@ -29,15 +29,20 @@ class FakeEmbeddingProvider:
 
 
 class FakeGenerationProvider:
-    """Deterministic LLM stand-in that records the prompts it was given."""
+    """Deterministic LLM stand-in that records the prompts it was given.
 
-    def __init__(self, answer: str = "fake answer") -> None:
+    With echo=True it returns the user prompt verbatim, so a test can assert
+    the answer is grounded only in the chunks build_prompt was handed.
+    """
+
+    def __init__(self, answer: str = "fake answer", *, echo: bool = False) -> None:
         self.answer = answer
+        self.echo = echo
         self.calls: list[tuple[str, str]] = []
 
     async def generate(self, system: str, prompt: str) -> str:
         self.calls.append((system, prompt))
-        return self.answer
+        return prompt if self.echo else self.answer
 
 
 def ephemeral_store() -> VectorStore:
