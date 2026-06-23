@@ -28,6 +28,18 @@ class FakeEmbeddingProvider:
         return [seed / (i + 1) for i in range(self._dimension)]
 
 
+class FakeGenerationProvider:
+    """Deterministic LLM stand-in that records the prompts it was given."""
+
+    def __init__(self, answer: str = "fake answer") -> None:
+        self.answer = answer
+        self.calls: list[tuple[str, str]] = []
+
+    async def generate(self, system: str, prompt: str) -> str:
+        self.calls.append((system, prompt))
+        return self.answer
+
+
 def ephemeral_store() -> VectorStore:
     """An in-memory vector store wrapping a fresh Chroma collection."""
     client = chromadb.EphemeralClient()
