@@ -6,12 +6,14 @@ needs a real key.
 
 from types import SimpleNamespace
 
+import httpx
 import pytest
 from tests.fakes import FakeSearchProvider
 
 from app.services import search as search_module
 from app.services.search import (
     NullSearchProvider,
+    SearchProviderError,
     TavilySearchProvider,
     get_search_provider,
 )
@@ -33,9 +35,11 @@ async def test_fake_provider_is_deterministic_and_records_calls() -> None:
     assert [h.title for h in findings.hits] == ["Example"]
 
 
-async def test_fake_provider_failure_mode_raises() -> None:
-    with pytest.raises(RuntimeError, match="simulated provider failure"):
-        await FakeSearchProvider(fail=True).search("topic", max_results=3)
+async def test_fake_provider_raises_injected_error() -> None:
+    with pytest.raises(SearchProviderError, match="boom"):
+        await FakeSearchProvider(error=SearchProviderError("boom")).search(
+            "topic", max_results=3
+        )
 
 
 async def test_tavily_provider_maps_response_to_findings(monkeypatch) -> None:
@@ -70,15 +74,29 @@ async def test_tavily_provider_maps_response_to_findings(monkeypatch) -> None:
     ]
 
 
-async def test_tavily_provider_propagates_call_time_errors(monkeypatch) -> None:
+async def test_tavily_translates_operational_error_to_provider_error(
+    monkeypatch,
+) -> None:
     async def boom(query, **kwargs):
-        raise RuntimeError("network down")
+        raise httpx.ConnectError("network down")
 
     provider = TavilySearchProvider(api_key="x")
     monkeypatch.setattr(provider._client, "search", boom)
 
-    # The provider does not swallow; the agent owns the degrade policy.
-    with pytest.raises(RuntimeError, match="network down"):
+    # Expected operational failures become SearchProviderError for the agent.
+    with pytest.raises(SearchProviderError, match="network down"):
+        await provider.search("q", max_results=1)
+
+
+async def test_tavily_does_not_wrap_programming_errors(monkeypatch) -> None:
+    async def boom(query, **kwargs):
+        raise AttributeError("typo in our code")
+
+    provider = TavilySearchProvider(api_key="x")
+    monkeypatch.setattr(provider._client, "search", boom)
+
+    # A genuine bug must surface as itself, never as a "web search unavailable".
+    with pytest.raises(AttributeError, match="typo in our code"):
         await provider.search("q", max_results=1)
 
 

@@ -49,21 +49,25 @@ class FakeGenerationProvider:
 class FakeSearchProvider:
     """Offline search stand-in returning canned hits and recording its calls.
 
-    With fail=True every search raises, to exercise the agent's degrade path
-    without touching the network.
+    Pass error=<exc> to make every search raise it, exercising both the agent's
+    degrade path (a SearchProviderError) and the must-propagate path (a
+    programming error) without touching the network.
     """
 
     def __init__(
-        self, hits: list[WebSearchHit] | None = None, *, fail: bool = False
+        self,
+        hits: list[WebSearchHit] | None = None,
+        *,
+        error: Exception | None = None,
     ) -> None:
         self.hits = hits if hits is not None else [_canned_hit()]
-        self.fail = fail
+        self.error = error
         self.calls: list[tuple[str, int]] = []
 
     async def search(self, query: str, *, max_results: int) -> WebSearchFindings:
         self.calls.append((query, max_results))
-        if self.fail:
-            raise RuntimeError("simulated provider failure")
+        if self.error is not None:
+            raise self.error
         return WebSearchFindings(query=query, hits=self.hits)
 
 

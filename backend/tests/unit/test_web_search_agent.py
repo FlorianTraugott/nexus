@@ -7,12 +7,13 @@ so no key and no network are involved.
 import uuid
 from types import SimpleNamespace
 
+import pytest
 from tests.fakes import FakeSearchProvider
 
 from app.agents import web_search
 from app.agents.web_search import run_web_search
 from app.schemas.research import ResearchStage, ResearchState
-from app.services.search import NullSearchProvider
+from app.services.search import NullSearchProvider, SearchProviderError
 
 
 def _state() -> ResearchState:
@@ -56,7 +57,7 @@ async def test_missing_key_path_yields_empty_findings_without_error(
 
 async def test_provider_failure_degrades_to_warning(monkeypatch) -> None:
     _fixed_max_results(monkeypatch, 5)
-    provider = FakeSearchProvider(fail=True)
+    provider = FakeSearchProvider(error=SearchProviderError("network down"))
 
     result = await run_web_search(_state(), provider)
 
@@ -65,3 +66,12 @@ async def test_provider_failure_degrades_to_warning(monkeypatch) -> None:
     assert result.warnings == ["web search unavailable"]
     assert result.error is None  # a failed web search does not fail the run
     assert result.stage is ResearchStage.KB_QUERY
+
+
+async def test_programming_error_is_not_swallowed(monkeypatch) -> None:
+    _fixed_max_results(monkeypatch, 5)
+    # A bug (not a SearchProviderError) must surface, not hide as a warning.
+    provider = FakeSearchProvider(error=AttributeError("typo"))
+
+    with pytest.raises(AttributeError, match="typo"):
+        await run_web_search(_state(), provider)
