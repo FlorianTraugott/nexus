@@ -31,6 +31,9 @@ chromadb==1.5.9
 # RAG: generation (LLM)
 anthropic==0.111.0
 
+# Research pipeline: web search
+tavily-python==0.7.26
+
 # Dev / quality tooling
 ruff==0.8.2
 black==24.10.0

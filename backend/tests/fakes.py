@@ -4,6 +4,7 @@ import uuid
 
 import chromadb
 
+from app.schemas.research import WebSearchFindings, WebSearchHit
 from app.services.vector_store import VectorStore
 
 
@@ -43,6 +44,33 @@ class FakeGenerationProvider:
     async def generate(self, system: str, prompt: str) -> str:
         self.calls.append((system, prompt))
         return prompt if self.echo else self.answer
+
+
+class FakeSearchProvider:
+    """Offline search stand-in returning canned hits and recording its calls.
+
+    With fail=True every search raises, to exercise the agent's degrade path
+    without touching the network.
+    """
+
+    def __init__(
+        self, hits: list[WebSearchHit] | None = None, *, fail: bool = False
+    ) -> None:
+        self.hits = hits if hits is not None else [_canned_hit()]
+        self.fail = fail
+        self.calls: list[tuple[str, int]] = []
+
+    async def search(self, query: str, *, max_results: int) -> WebSearchFindings:
+        self.calls.append((query, max_results))
+        if self.fail:
+            raise RuntimeError("simulated provider failure")
+        return WebSearchFindings(query=query, hits=self.hits)
+
+
+def _canned_hit() -> WebSearchHit:
+    return WebSearchHit(
+        title="Example", url="https://example.com", snippet="a snippet", score=0.9
+    )
 
 
 def ephemeral_store() -> VectorStore:

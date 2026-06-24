@@ -39,7 +39,19 @@ def test_state_defaults_start_unpopulated_at_first_stage() -> None:
     assert state.kb is None
     assert state.summary is None
     assert state.report is None
+    assert state.warnings == []
     assert state.error is None
+
+
+def test_state_warnings_default_to_an_independent_list() -> None:
+    a = ResearchState(topic="t", user_id=uuid.uuid4())
+    b = ResearchState(topic="t", user_id=uuid.uuid4())
+
+    a.warnings.append("web search unavailable")
+
+    # default_factory: each state gets its own list, not a shared default.
+    assert a.warnings == ["web search unavailable"]
+    assert b.warnings == []
 
 
 def test_state_requires_topic_and_user_id() -> None:

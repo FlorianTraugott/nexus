@@ -97,4 +97,8 @@ class ResearchState(BaseModel):
     kb: KBFindings | None = None
     summary: Summary | None = None
     report: ResearchReport | None = None
+    # Non-fatal degradations (e.g. web search unavailable): the run continues
+    # and the status endpoint surfaces these. Reserve `error` for failures that
+    # make the whole run meaningless.
+    warnings: list[str] = Field(default_factory=list)
     error: str | None = None
