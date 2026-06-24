@@ -29,6 +29,27 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE_MB: int = 25
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 200
+    RAG_TOP_K: int = 5
+    RAG_MAX_TOP_K: int = 20
+
+    EMBEDDING_PROVIDER: str = "openai"
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSIONS: int = 1536
+    OPENAI_API_KEY: str = ""
+
+    CHROMA_PERSIST_DIR: str = "chroma"
+    CHROMA_COLLECTION: str = "nexus_chunks"
+
+    LLM_PROVIDER: str = "openai"
+    GENERATION_MODEL: str = "gpt-4.1-mini"
+    LLM_MODEL: str = "claude-haiku-4-5-20251001"
+    LLM_MAX_TOKENS: int = 1024
+    ANTHROPIC_API_KEY: str = ""
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
@@ -41,6 +62,11 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def max_upload_size_bytes(self) -> int:
+        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
 @lru_cache
