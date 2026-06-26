@@ -83,6 +83,32 @@ class ResearchReport(BaseModel):
     markdown: str = Field(min_length=1)
 
 
+class ResearchRequest(BaseModel):
+    """The research question in; user_id comes from the token, never the body."""
+
+    topic: str = Field(min_length=1)
+    # Optional override; the endpoint also enforces a configurable upper bound.
+    k: int | None = Field(default=None, gt=0)
+
+
+class ResearchResponse(BaseModel):
+    """The completed run out: the state minus user_id, reusing the nested models.
+
+    Exposes the report plus its supporting evidence (web hits + KB findings) and
+    any warnings/error, so the client inspects one resource. A recorded pipeline
+    failure rides here as a populated `error` with `report` null, not a 5xx.
+    """
+
+    topic: str
+    stage: ResearchStage
+    web: WebSearchFindings | None
+    kb: KBFindings | None
+    summary: Summary | None
+    report: ResearchReport | None
+    warnings: list[str]
+    error: str | None
+
+
 class ResearchState(BaseModel):
     """The state threaded through the pipeline, filled in stage by stage."""
 
