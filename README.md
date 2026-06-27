@@ -14,6 +14,7 @@ Planned capabilities (built incrementally — see roadmap):
 
 - **Multimodal RAG** — ingest PDFs, text, YouTube, and web pages *including embedded images and charts*, then chat with cited answers
 - **Multi-agent research** — a LangGraph pipeline that searches the web, queries your knowledge base, and writes structured reports
+- **MCP tools** — expose web search and knowledge-base retrieval over the Model Context Protocol, so any MCP client (Claude Desktop, IDE assistants) can call them
 - **Voice + vision interface** — speak to it (Whisper), hear it back (TTS), and ask questions about images in your documents
 - **Production-grade** — JWT auth, evaluation harness, observability, full test coverage, CI/CD
 
@@ -72,6 +73,42 @@ make hooks     # install pre-commit git hooks
 
 ---
 
+## MCP server
+
+The backend doubles as an [MCP](https://modelcontextprotocol.io) server, exposing two tools — `web_search` and `kb_search` (owner-scoped retrieval over your own corpus) — to any MCP client over stdio.
+
+**Run it directly:**
+
+```bash
+cd backend
+python -m app.mcp.server      # or: python -m app.mcp
+```
+
+**Register it with a client** (e.g. Claude Code / Claude Desktop) via an `.mcp.json` at the repo root. That file is git-ignored — it's local, machine-specific config — so copy this template and fill in your values:
+
+```json
+{
+  "mcpServers": {
+    "nexus": {
+      "command": "/path/to/nexus/venv/bin/python",
+      "args": ["-m", "app.mcp.server"],
+      "cwd": "/path/to/nexus/backend",
+      "env": {
+        "NEXUS_MCP_USER_ID": "<your-user-uuid>"
+      }
+    }
+  }
+}
+```
+
+- **Secrets stay in `backend/.env`.** The server runs with `cwd: backend`, so it loads `POSTGRES_*`, `OPENAI_API_KEY`, etc. from there — keep them out of `.mcp.json`.
+- **`NEXUS_MCP_USER_ID` is required for `kb_search`** and must be set in this `env` block (it's read from the process environment, not `.env`). It scopes retrieval to one user; an unset, malformed, or inactive value makes `kb_search` fail loudly rather than search across users.
+- `web_search` needs no identity; with the default offline search provider it returns empty results until a real provider is configured.
+
+To confirm `kb_search` end-to-end against your data, register the server with a real user id and a populated corpus, then ask the client to search it — the offline test suite covers tool discovery and a `web_search` round-trip, but not a live `kb_search` query.
+
+---
+
 ## Project Structure
 
 ```
@@ -81,6 +118,7 @@ nexus/
 │   │   ├── api/        # route handlers
 │   │   ├── core/       # config, logging, security
 │   │   ├── db/         # models, sessions
+│   │   ├── mcp/        # MCP server: tools exposed over the Model Context Protocol
 │   │   ├── services/   # business logic (RAG, agents, voice)
 │   │   └── main.py     # entry point
 │   ├── evals/          # evaluation datasets + runners
@@ -97,9 +135,11 @@ nexus/
 | Phase | Parts | Status |
 |---|---|---|
 | Foundation | Project setup, backend, auth | 🟡 In progress |
-| Core AI | Ingestion, RAG, agents, multimodal | ⚪ Planned |
+| Core AI | Ingestion, RAG, agents, multimodal | 🟡 In progress |
 | Interface | Frontend foundation + features | ⚪ Planned |
 | Production | Evaluation, testing, deployment | ⚪ Planned |
+
+**Recently shipped:** multimodal ingestion, RAG query, the multi-agent research pipeline, and an **MCP server** exposing `web_search` + `kb_search` over stdio.
 
 ---
 
