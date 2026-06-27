@@ -51,3 +51,15 @@ async def test_tool_call_offline_returns_empty_findings() -> None:
 
     # call_tool returns (content, structured_content); assert the structured half.
     assert result[1] == {"query": "anything", "hits": []}
+
+
+async def test_kb_search_tool_registered_with_input_and_output_schemas() -> None:
+    # Registration is offline (introspection only); the call path needs a DB and
+    # is exercised in tests/integration/test_mcp_kb_search.py.
+    tools = {tool.name: tool for tool in await mcp.list_tools()}
+
+    assert "kb_search" in tools
+    tool = tools["kb_search"]
+    assert "query" in tool.inputSchema["properties"]
+    assert tool.inputSchema["required"] == ["query"]
+    assert tool.outputSchema is not None

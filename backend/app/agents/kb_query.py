@@ -12,14 +12,10 @@ empty findings, never a warning or error.
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.research import KBFinding, KBFindings, ResearchStage, ResearchState
+from app.schemas.research import KBFindings, ResearchStage, ResearchState
 from app.services.embeddings import EmbeddingProvider
-from app.services.retrieval import RetrievedChunk, retrieve
+from app.services.retrieval import retrieve, to_finding
 from app.services.vector_store import VectorStore
-
-# Findings carry a snippet for the summariser, not the full chunk text. Kept
-# local on purpose rather than coupling the agent to the query endpoint.
-_PREVIEW_CHARS = 280
 
 
 async def run_kb_query(
@@ -41,18 +37,7 @@ async def run_kb_query(
     )
     state.kb = KBFindings(
         query=state.topic,
-        findings=[_to_finding(result) for result in results],
+        findings=[to_finding(result) for result in results],
     )
     state.stage = ResearchStage.SUMMARISE
     return state
-
-
-def _to_finding(result: RetrievedChunk) -> KBFinding:
-    chunk = result.chunk
-    return KBFinding(
-        chunk_id=chunk.id,
-        document_id=chunk.document_id,
-        chunk_index=chunk.chunk_index,
-        distance=result.distance,
-        content_preview=chunk.content[:_PREVIEW_CHARS],
-    )
