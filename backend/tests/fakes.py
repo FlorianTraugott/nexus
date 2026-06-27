@@ -4,6 +4,7 @@ import uuid
 
 import chromadb
 
+from app.schemas.research import WebSearchFindings, WebSearchHit
 from app.services.vector_store import VectorStore
 
 
@@ -39,10 +40,47 @@ class FakeGenerationProvider:
         self.answer = answer
         self.echo = echo
         self.calls: list[tuple[str, str]] = []
+        # Records json_mode per call so tests can assert the structured agents
+        # request JSON mode while the /query path does not.
+        self.json_modes: list[bool] = []
 
-    async def generate(self, system: str, prompt: str) -> str:
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
         self.calls.append((system, prompt))
+        self.json_modes.append(json_mode)
         return prompt if self.echo else self.answer
+
+
+class FakeSearchProvider:
+    """Offline search stand-in returning canned hits and recording its calls.
+
+    Pass error=<exc> to make every search raise it, exercising both the agent's
+    degrade path (a SearchProviderError) and the must-propagate path (a
+    programming error) without touching the network.
+    """
+
+    def __init__(
+        self,
+        hits: list[WebSearchHit] | None = None,
+        *,
+        error: Exception | None = None,
+    ) -> None:
+        self.hits = hits if hits is not None else [_canned_hit()]
+        self.error = error
+        self.calls: list[tuple[str, int]] = []
+
+    async def search(self, query: str, *, max_results: int) -> WebSearchFindings:
+        self.calls.append((query, max_results))
+        if self.error is not None:
+            raise self.error
+        return WebSearchFindings(query=query, hits=self.hits)
+
+
+def _canned_hit() -> WebSearchHit:
+    return WebSearchHit(
+        title="Example", url="https://example.com", snippet="a snippet", score=0.9
+    )
 
 
 def ephemeral_store() -> VectorStore:

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.db.models import DocumentChunk
 from app.db.repositories import document as document_repo
+from app.schemas.research import KBFinding
 from app.services.embeddings import EmbeddingProvider, get_embedding_provider
 from app.services.vector_store import VectorStore, get_vector_store
 
@@ -55,3 +56,21 @@ async def retrieve(
         for id_, match in zip(ordered_ids, matches, strict=True)
         if id_ in by_id
     ]
+
+
+# Findings carry a short snippet for clients (the summariser, the MCP tool), not
+# the full chunk text. One definition shared by every RetrievedChunk -> KBFinding
+# caller so the preview contract can't drift between them.
+PREVIEW_CHARS = 280
+
+
+def to_finding(result: RetrievedChunk) -> KBFinding:
+    """Map a retrieved chunk to a KBFinding: DB ids plus a truncated preview."""
+    chunk = result.chunk
+    return KBFinding(
+        chunk_id=chunk.id,
+        document_id=chunk.document_id,
+        chunk_index=chunk.chunk_index,
+        distance=result.distance,
+        content_preview=chunk.content[:PREVIEW_CHARS],
+    )

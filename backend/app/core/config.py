@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int = 1024
     ANTHROPIC_API_KEY: str = ""
 
+    # Web search. Defaults to the offline no-op "null" provider: live search is
+    # a billable external call, so Tavily is explicit opt-in (SEARCH_PROVIDER=
+    # tavily) and only used when TAVILY_API_KEY is also set.
+    SEARCH_PROVIDER: str = "null"
+    SEARCH_MAX_RESULTS: int = 5
+    TAVILY_API_KEY: str = ""
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
