@@ -17,6 +17,9 @@ ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+# "mcp" is the external SDK; pin it third-party so the local app/mcp package
+# doesn't make isort treat top-level mcp imports as first-party.
+known-third-party = ["mcp"]
 
 [tool.black]
 line-length = 88
