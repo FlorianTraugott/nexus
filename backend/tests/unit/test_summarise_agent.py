@@ -62,7 +62,9 @@ def _state(
 class BoomGenerator:
     """Generation provider that fails the call, to prove errors propagate."""
 
-    async def generate(self, system: str, prompt: str) -> str:
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
         raise RuntimeError("LLM down")
 
 
@@ -78,6 +80,18 @@ async def test_normal_path_populates_summary() -> None:
     assert result.stage is ResearchStage.REPORT
     assert result.warnings == []
     assert result.error is None
+    assert generator.json_modes == [True]  # structured output requested JSON mode
+
+
+async def test_fenced_json_output_is_parsed() -> None:
+    payload = json.dumps({"key_points": ["p"], "abstract": "An abstract."})
+    generator = FakeGenerationProvider(answer=f"```json\n{payload}\n```")
+
+    result = await run_summarise(_state(web=_web(), kb=_kb()), generator)
+
+    assert isinstance(result.summary, Summary)
+    assert result.summary.abstract == "An abstract."
+    assert result.stage is ResearchStage.REPORT
 
 
 @pytest.mark.parametrize(
@@ -86,6 +100,7 @@ async def test_normal_path_populates_summary() -> None:
         "this is not json at all",
         json.dumps({"key_points": ["p"], "abstract": ""}),  # empty abstract: invalid
         json.dumps({"abstract": "missing key_points"}),
+        "```json\nnot valid json\n```",  # invalid even after the fence is stripped
     ],
 )
 async def test_malformed_output_raises_specific_error(answer: str) -> None:

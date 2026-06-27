@@ -88,6 +88,26 @@ async def test_openai_provider_sends_prompts_and_returns_text(monkeypatch) -> No
     ]
 
 
+async def test_openai_provider_json_mode_toggles_response_format(monkeypatch) -> None:
+    captured: dict = {}
+
+    async def fake_create(**kwargs):
+        captured.clear()
+        captured.update(kwargs)
+        message = SimpleNamespace(content="{}")
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    provider = OpenAIGenerationProvider(api_key="x", model="m", max_tokens=64)
+    monkeypatch.setattr(provider._client.chat.completions, "create", fake_create)
+
+    await provider.generate("sys", "prompt", json_mode=True)
+    assert captured["response_format"] == {"type": "json_object"}
+
+    # Default (e.g. the /query path): response_format is not sent at all.
+    await provider.generate("sys", "prompt")
+    assert "response_format" not in captured
+
+
 def test_get_generation_provider_rejects_unknown(monkeypatch) -> None:
     from app.core import config
 

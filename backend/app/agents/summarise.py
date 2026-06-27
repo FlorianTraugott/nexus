@@ -14,6 +14,7 @@ behind "the model returned bad output".
 
 from pydantic import ValidationError
 
+from app.agents.parsing import strip_code_fence
 from app.schemas.research import (
     KBFindings,
     ResearchStage,
@@ -23,6 +24,8 @@ from app.schemas.research import (
 )
 from app.services.generation import GenerationProvider
 
+# Keep the literal word "JSON" here: OpenAI's json_object mode requires it to
+# appear in the prompt, so removing it would silently break structured output.
 _SYSTEM_PROMPT = (
     "You are a research summariser. Using ONLY the context provided, write a "
     "concise digest of what is known about the topic. Respond with a single "
@@ -65,9 +68,9 @@ async def run_summarise(
 ) -> ResearchState:
     """Generate a structured Summary from web + KB findings; advance to report."""
     system, prompt = build_summary_prompt(state.topic, state.web, state.kb)
-    text = await generator.generate(system, prompt)
+    text = await generator.generate(system, prompt, json_mode=True)
     try:
-        summary = Summary.model_validate_json(text)
+        summary = Summary.model_validate_json(strip_code_fence(text))
     except ValidationError as exc:
         # Narrow on purpose: only invalid model output is wrapped, so bugs
         # elsewhere keep propagating as themselves.

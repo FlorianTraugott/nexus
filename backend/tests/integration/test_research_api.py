@@ -91,7 +91,9 @@ class ScriptedGenerator:
         self.report = report
         self.calls: list[tuple[str, str]] = []
 
-    async def generate(self, system: str, prompt: str) -> str:
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
         self.calls.append((system, prompt))
         if "summariser" in system:
             return self.summary

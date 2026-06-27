@@ -149,6 +149,7 @@ async def test_query_returns_answer_and_citations(env: _Env) -> None:
     distances = [c["distance"] for c in body["citations"]]
     assert distances == sorted(distances)  # lowest distance first
     assert set(previews) == {"alpha apple", "bravo banana", "charlie cherry"}
+    assert env.generator.json_modes == [False]  # query is non-structured
 
 
 async def test_query_requires_authentication(env: _Env) -> None:

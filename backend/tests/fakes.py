@@ -40,9 +40,15 @@ class FakeGenerationProvider:
         self.answer = answer
         self.echo = echo
         self.calls: list[tuple[str, str]] = []
+        # Records json_mode per call so tests can assert the structured agents
+        # request JSON mode while the /query path does not.
+        self.json_modes: list[bool] = []
 
-    async def generate(self, system: str, prompt: str) -> str:
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
         self.calls.append((system, prompt))
+        self.json_modes.append(json_mode)
         return prompt if self.echo else self.answer
 
 

@@ -15,6 +15,7 @@ A missing summary at this stage is an orchestration error and raises plainly.
 
 from pydantic import ValidationError
 
+from app.agents.parsing import strip_code_fence
 from app.schemas.research import (
     ResearchReport,
     ResearchStage,
@@ -23,6 +24,8 @@ from app.schemas.research import (
 )
 from app.services.generation import GenerationProvider
 
+# Keep the literal word "JSON" here: OpenAI's json_object mode requires it to
+# appear in the prompt, so removing it would silently break structured output.
 _SYSTEM_PROMPT = (
     "You are a research report writer. Using ONLY the provided summary, write a "
     "structured report on the topic. Respond with a single JSON object and "
@@ -55,9 +58,9 @@ async def run_report(
         raise ValueError("run_report requires state.summary; summarise must run first")
 
     system, prompt = build_report_prompt(state.summary)
-    text = await generator.generate(system, prompt)
+    text = await generator.generate(system, prompt, json_mode=True)
     try:
-        report = ResearchReport.model_validate_json(text)
+        report = ResearchReport.model_validate_json(strip_code_fence(text))
     except ValidationError as exc:
         raise MalformedReportError(
             "report-writer model did not return a valid ResearchReport"

@@ -12,6 +12,7 @@ from typing import Protocol
 from anthropic import AsyncAnthropic
 from anthropic.types import TextBlock
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from app.core.config import get_settings
 
@@ -38,8 +39,10 @@ def build_prompt(question: str, contexts: list[str]) -> tuple[str, str]:
 class GenerationProvider(Protocol):
     """Produces a text answer from a system prompt and a user prompt."""
 
-    async def generate(self, system: str, prompt: str) -> str:
-        """Return the model's answer for the given prompts."""
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
+        """Return the model's answer; json_mode=True asks for a bare JSON object."""
         ...
 
 
@@ -51,15 +54,29 @@ class OpenAIGenerationProvider:
         self._model = model
         self._max_tokens = max_tokens
 
-    async def generate(self, system: str, prompt: str) -> str:
-        response = await self._client.chat.completions.create(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-        )
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
+        # json_mode asks OpenAI for a single bare JSON object (no markdown fence),
+        # which the structured agents validate directly. The non-structured
+        # /query path omits response_format entirely, leaving it unchanged.
+        messages: list[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ]
+        if json_mode:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=self._max_tokens,
+                messages=messages,
+                response_format={"type": "json_object"},
+            )
+        else:
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                max_tokens=self._max_tokens,
+                messages=messages,
+            )
         return response.choices[0].message.content or ""
 
 
@@ -71,7 +88,12 @@ class ClaudeGenerationProvider:
         self._model = model
         self._max_tokens = max_tokens
 
-    async def generate(self, system: str, prompt: str) -> str:
+    async def generate(
+        self, system: str, prompt: str, *, json_mode: bool = False
+    ) -> str:
+        # Anthropic has no json_object response mode; the prompt already asks for
+        # JSON and the structured agents strip any fenced output, so json_mode is
+        # advisory here.
         response = await self._client.messages.create(
             model=self._model,
             max_tokens=self._max_tokens,
