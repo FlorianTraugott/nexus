@@ -34,3 +34,14 @@ def test_snapping_prefers_paragraph_breaks() -> None:
     chunks = chunk_text(f"{first}\n\n{second}", chunk_size=800, overlap=100)
     # the first chunk should end at the blank line, not mid-way through the B's
     assert chunks[0] == first
+
+
+def test_early_boundary_does_not_collapse_the_step() -> None:
+    # An early paragraph break used to make _snap_to_boundary cut near the
+    # window start, dropping the step to one character and exploding a real
+    # document into tens of thousands of tiny chunks. The step must stay near
+    # chunk_size - overlap regardless of where the break falls.
+    text = "Title\n\n" + "word " * 4000
+    chunks = chunk_text(text, chunk_size=1000, overlap=200)
+    assert len(chunks) < 40  # ~len/step, not thousands
+    assert min(len(chunk) for chunk in chunks) > 200  # no degenerate slivers
