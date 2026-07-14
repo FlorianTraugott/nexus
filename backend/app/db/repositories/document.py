@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -94,12 +94,16 @@ async def replace_chunks(
 
 async def replace_images(
     db: AsyncSession, document_id: uuid.UUID, images: list[tuple[int, int, str]]
-) -> None:
-    """Replace a document's images. Each tuple is (page, index, storage_path)."""
+) -> list[DocumentImage]:
+    """Replace a document's images and return the freshly created rows.
+
+    Each tuple is (page, index, storage_path). Returning the rows lets the caller
+    caption them afterwards without a re-query, mirroring replace_chunks.
+    """
     await db.execute(
         delete(DocumentImage).where(DocumentImage.document_id == document_id)
     )
-    db.add_all(
+    rows = [
         DocumentImage(
             document_id=document_id,
             page_number=page_number,
@@ -107,5 +111,18 @@ async def replace_images(
             storage_path=storage_path,
         )
         for page_number, image_index, storage_path in images
-    )
+    ]
+    db.add_all(rows)
     await db.flush()
+    return rows
+
+
+async def set_image_caption(
+    db: AsyncSession, image_id: uuid.UUID, caption: str
+) -> None:
+    """Persist a vision-generated caption on one image row."""
+    await db.execute(
+        update(DocumentImage)
+        .where(DocumentImage.id == image_id)
+        .values(caption=caption)
+    )

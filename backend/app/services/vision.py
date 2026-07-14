@@ -19,6 +19,7 @@ from openai.types.chat import (
     ChatCompletionContentPartParam,
     ChatCompletionMessageParam,
 )
+from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -194,3 +195,49 @@ async def answer_document_images(
     return VisionAnswer(
         answer=answer, images_used=len(selected), images_total=len(images)
     )
+
+
+_CAPTION_SYSTEM = (
+    "You describe an image extracted from a document so that it can be found later by "
+    "semantic search. Write a single dense paragraph, no preamble, no markdown.\n\n"
+    "Transcribe every piece of text visible in the image: the title, axis labels, legend "
+    "entries, and especially every data label and numeric value. State the chart or figure "
+    "type. If the image shows data, restate the data points explicitly as label-value pairs. "
+    "If the image is a logo, icon, decorative rule, or contains no meaningful information, "
+    "reply with exactly: NO_CONTENT"
+)
+NO_CONTENT = "NO_CONTENT"
+
+
+async def caption_image(path: Path) -> str | None:
+    """Caption one image for search. Returns None if the image is junk or too small.
+
+    Two cheap gates run before the billable vision call: an unsupported suffix and
+    a below-threshold size both short-circuit to None. A NO_CONTENT or empty reply
+    means the model judged the image not worth indexing.
+    """
+    suffix = path.suffix.lower()
+    media_type = _MEDIA_TYPES.get(suffix)
+    if media_type is None:
+        return None
+
+    min_px = get_settings().VISION_MIN_IMAGE_PX
+    with Image.open(path) as im:
+        width, height = im.size
+    if width < min_px or height < min_px:
+        return None
+
+    image = VisionImage(data=path.read_bytes(), media_type=media_type)
+    provider = get_vision_provider()
+    # detail="high": chart data labels are small, and this read decides whether
+    # the caption captures the numbers that make the image retrievable.
+    result = await provider.answer(
+        system=_CAPTION_SYSTEM,
+        prompt="Describe this image for search.",
+        images=[image],
+        detail="high",
+    )
+    result = result.strip()
+    if not result or result == NO_CONTENT:
+        return None
+    return result

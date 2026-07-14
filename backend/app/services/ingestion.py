@@ -2,16 +2,23 @@
 
 import asyncio
 import uuid
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.db.models import Document, DocumentChunk, DocumentSourceType, DocumentStatus
+from app.db.models import (
+    Document,
+    DocumentChunk,
+    DocumentImage,
+    DocumentSourceType,
+    DocumentStatus,
+)
 from app.db.repositories import document as document_repo
 from app.db.session import AsyncSessionLocal
 from app.services import images as image_service
-from app.services import parser, storage
+from app.services import parser, storage, vision
 from app.services.chunker import chunk_text
 from app.services.embeddings import EmbeddingProvider, get_embedding_provider
 from app.services.vector_store import VectorStore, get_vector_store
@@ -55,7 +62,7 @@ async def run_ingestion(
             extracted = await asyncio.to_thread(
                 image_service.extract_images, path, storage.image_dir(document.id)
             )
-            await document_repo.replace_images(
+            image_rows = await document_repo.replace_images(
                 session,
                 document.id,
                 [
@@ -63,6 +70,7 @@ async def run_ingestion(
                     for img in extracted
                 ],
             )
+            await _caption_images(session, document.id, image_rows)
 
         document.chunk_count = len(chunks)
         document.status = DocumentStatus.COMPLETED
@@ -74,6 +82,33 @@ async def run_ingestion(
         if document is not None:
             document.status = DocumentStatus.FAILED
             await session.commit()
+
+
+async def _caption_images(
+    session: AsyncSession,
+    document_id: uuid.UUID,
+    image_rows: list[DocumentImage],
+) -> None:
+    """Caption each extracted image for search, persisting captions best-effort.
+
+    Broad ``except Exception`` by design — a deliberate deviation from the
+    narrow-catch convention used for web search. Captioning has no dedicated
+    operational error class (the OpenAI SDK, PIL decode, and disk-read failures
+    share no base), and it is non-load-bearing: an ingest whose text indexed fine
+    must never fail because one image could not be captioned. So each image is
+    isolated — on failure we log and continue, leaving that caption NULL.
+    """
+    for row in image_rows:
+        try:
+            caption = await vision.caption_image(Path(row.storage_path))
+            if caption is not None:
+                await document_repo.set_image_caption(session, row.id, caption)
+        except Exception:
+            log.warning(
+                "image_caption_failed",
+                document_id=str(document_id),
+                image=row.storage_path,
+            )
 
 
 async def _index_chunks(
