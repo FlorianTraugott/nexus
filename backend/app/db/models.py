@@ -155,5 +155,8 @@ class DocumentImage(UUIDMixin, TimestampMixin, Base):
     # position within the document, across all pages, starting at 0
     image_index: Mapped[int] = mapped_column(nullable=False)
     storage_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    # vision-generated description that makes the image semantically findable;
+    # NULL means the image has not been captioned yet
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     document: Mapped["Document"] = relationship(back_populates="images")
