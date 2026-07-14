@@ -47,6 +47,8 @@ class Settings(BaseSettings):
 
     CHROMA_PERSIST_DIR: str = "chroma"
     CHROMA_COLLECTION: str = "nexus_chunks"
+    # Image captions live in their own collection so the text path is untouched.
+    CHROMA_IMAGE_COLLECTION: str = "nexus_images"
 
     LLM_PROVIDER: str = "openai"
     GENERATION_MODEL: str = "gpt-4.1-mini"

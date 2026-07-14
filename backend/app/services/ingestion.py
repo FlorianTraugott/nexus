@@ -21,7 +21,11 @@ from app.services import images as image_service
 from app.services import parser, storage, vision
 from app.services.chunker import chunk_text
 from app.services.embeddings import EmbeddingProvider, get_embedding_provider
-from app.services.vector_store import VectorStore, get_vector_store
+from app.services.vector_store import (
+    VectorStore,
+    get_image_vector_store,
+    get_vector_store,
+)
 
 log = get_logger(__name__)
 
@@ -37,6 +41,7 @@ async def run_ingestion(
     document_id: uuid.UUID,
     embedder: EmbeddingProvider | None = None,
     store: VectorStore | None = None,
+    image_store: VectorStore | None = None,
 ) -> None:
     document = await document_repo.get_document(session, document_id)
     if document is None:
@@ -45,6 +50,7 @@ async def run_ingestion(
     # Resolve providers lazily so callers (and tests) can inject fakes.
     embedder = embedder or get_embedding_provider()
     store = store or get_vector_store()
+    image_store = image_store or get_image_vector_store()
 
     document.status = DocumentStatus.PROCESSING
     await session.commit()
@@ -70,7 +76,8 @@ async def run_ingestion(
                     for img in extracted
                 ],
             )
-            await _caption_images(session, document.id, image_rows)
+            captioned = await _caption_images(session, document.id, image_rows)
+            await _index_images(image_store, embedder, document, captioned)
 
         document.chunk_count = len(chunks)
         document.status = DocumentStatus.COMPLETED
@@ -88,7 +95,7 @@ async def _caption_images(
     session: AsyncSession,
     document_id: uuid.UUID,
     image_rows: list[DocumentImage],
-) -> None:
+) -> list[tuple[DocumentImage, str]]:
     """Caption each extracted image for search, persisting captions best-effort.
 
     Broad ``except Exception`` by design — a deliberate deviation from the
@@ -97,18 +104,65 @@ async def _caption_images(
     share no base), and it is non-load-bearing: an ingest whose text indexed fine
     must never fail because one image could not be captioned. So each image is
     isolated — on failure we log and continue, leaving that caption NULL.
+
+    Returns the (image, caption) pairs that were captioned so the caller can
+    index them without re-reading the rows; NULL-caption images (junk-filtered,
+    NO_CONTENT, or failed) are omitted, since they have nothing to embed.
     """
+    captioned: list[tuple[DocumentImage, str]] = []
     for row in image_rows:
         try:
             caption = await vision.caption_image(Path(row.storage_path))
             if caption is not None:
                 await document_repo.set_image_caption(session, row.id, caption)
+                captioned.append((row, caption))
         except Exception:
             log.warning(
                 "image_caption_failed",
                 document_id=str(document_id),
                 image=row.storage_path,
             )
+    return captioned
+
+
+async def _index_images(
+    store: VectorStore,
+    embedder: EmbeddingProvider,
+    document: Document,
+    captioned: list[tuple[DocumentImage, str]],
+) -> None:
+    """Embed image captions and (re)index them in the separate image collection.
+
+    Kept entirely off the text path (its own store, never _index_chunks). Broad
+    ``except Exception`` by design and best-effort: image indexing is
+    non-load-bearing, so an ingest whose text indexed fine must still reach
+    COMPLETED if the embed or add fails. Clearing first keeps the collection
+    consistent with the freshly captioned rows on every re-ingestion.
+    """
+    try:
+        # Chroma's client is synchronous, so run it off the event loop.
+        await asyncio.to_thread(store.delete_by_document, document.id)
+        if not captioned:
+            return
+        captions = [caption for _, caption in captioned]
+        embeddings = await embedder.embed_texts(captions)
+        await asyncio.to_thread(
+            store.add,
+            [str(image.id) for image, _ in captioned],
+            embeddings,
+            captions,
+            [
+                {
+                    "document_id": str(document.id),
+                    "user_id": str(document.user_id),
+                    "image_id": str(image.id),
+                    "page_number": image.page_number,
+                }
+                for image, _ in captioned
+            ],
+        )
+    except Exception:
+        log.warning("image_indexing_failed", document_id=str(document.id))
 
 
 async def _index_chunks(

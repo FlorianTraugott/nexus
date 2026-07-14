@@ -76,6 +76,16 @@ async def get_chunks_by_ids(
     return list(result.scalars().all())
 
 
+async def get_images_by_ids(
+    db: AsyncSession, ids: list[uuid.UUID]
+) -> list[DocumentImage]:
+    """Fetch images by id in one query; rows come back in arbitrary order."""
+    if not ids:
+        return []
+    result = await db.execute(select(DocumentImage).where(DocumentImage.id.in_(ids)))
+    return list(result.scalars().all())
+
+
 async def replace_chunks(
     db: AsyncSession, document_id: uuid.UUID, contents: list[str]
 ) -> list[DocumentChunk]:
