@@ -23,7 +23,9 @@ from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.db.models import DocumentImage
 from app.db.repositories.document import get_user_document_with_images
+from app.services.image_retrieval import image_retrieve
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,19 @@ _VISION_SYSTEM = (
 )
 
 
+def _load_vision_image(path: Path) -> VisionImage | None:
+    """Load image bytes plus media type. None for an unsupported suffix.
+
+    One home for the disk-load logic shared by the two vision entry points. A
+    read failure is NOT swallowed here — it raises — so each caller can choose
+    its own policy for a missing file.
+    """
+    media_type = _MEDIA_TYPES.get(path.suffix.lower())
+    if media_type is None:
+        return None
+    return VisionImage(data=path.read_bytes(), media_type=media_type)
+
+
 async def answer_document_images(
     db: AsyncSession,
     document_id: uuid.UUID,
@@ -182,11 +197,14 @@ async def answer_document_images(
     vision_images = []
     for im in selected:
         path = Path(im.storage_path)
-        suffix = path.suffix.lower()
-        media_type = _MEDIA_TYPES.get(suffix)
-        if media_type is None:
-            raise ValueError(f"Unsupported image type {suffix!r} for {path}")
-        vision_images.append(VisionImage(data=path.read_bytes(), media_type=media_type))
+        image = _load_vision_image(path)
+        # The user named this document, so a bad image is a real error, not a
+        # thing to skip — preserve the original loud failure.
+        if image is None:
+            raise ValueError(
+                f"Unsupported image type {path.suffix.lower()!r} for {path}"
+            )
+        vision_images.append(image)
 
     provider = get_vision_provider()
     answer = await provider.answer(
@@ -241,3 +259,68 @@ async def caption_image(path: Path) -> str | None:
     if not result or result == NO_CONTENT:
         return None
     return result
+
+
+@dataclass(frozen=True)
+class ImageMatch:
+    """One image that grounded a search answer, with its retrieval distance."""
+
+    image: DocumentImage
+    distance: float
+
+
+@dataclass(frozen=True)
+class ImageSearchAnswer:
+    """A vision answer plus the image sources it was grounded in."""
+
+    answer: str
+    sources: list[ImageMatch]
+
+
+_NO_IMAGE_ANSWER = (
+    "I could not find any relevant images in your documents to answer that."
+)
+
+
+async def search_document_images(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    question: str,
+    *,
+    k: int | None = None,
+    detail: str = "auto",
+) -> ImageSearchAnswer:
+    """Find the user's most relevant images by caption and answer from them.
+
+    Retrieval is over the image-caption collection (user-scoped). Empty
+    retrieval is a valid result, not an error: return an explanatory answer with
+    no sources rather than raising.
+    """
+    hits = await image_retrieve(session=db, query=question, user_id=user_id, k=k)
+    if not hits:
+        return ImageSearchAnswer(answer=_NO_IMAGE_ANSWER, sources=[])
+
+    capped = hits[: get_settings().VISION_MAX_IMAGES]
+    vision_images = []
+    used: list[ImageMatch] = []
+    for hit in capped:
+        # The system chose these images, so skipping one unreadable file to
+        # answer from the rest is the right degrade (unlike answer_document_images,
+        # where the user named the document and a bad image is a real error).
+        try:
+            image = _load_vision_image(Path(hit.image.storage_path))
+        except OSError:
+            continue
+        if image is None:
+            continue
+        vision_images.append(image)
+        used.append(ImageMatch(image=hit.image, distance=hit.distance))
+
+    if not vision_images:
+        return ImageSearchAnswer(answer=_NO_IMAGE_ANSWER, sources=[])
+
+    provider = get_vision_provider()
+    answer = await provider.answer(
+        system=_VISION_SYSTEM, prompt=question, images=vision_images, detail=detail
+    )
+    return ImageSearchAnswer(answer=answer, sources=used)
