@@ -6,6 +6,30 @@ import chromadb
 
 from app.schemas.research import WebSearchFindings, WebSearchHit
 from app.services.vector_store import VectorStore
+from app.services.vision import VisionImage
+
+
+class FakeVisionProvider:
+    """Deterministic vision stand-in: a canned caption with no network call.
+
+    Mirrors the VisionProvider protocol so captioning runs offline. Records its
+    calls so a test can assert how many images were captioned.
+    """
+
+    def __init__(self, caption: str = "a fake caption") -> None:
+        self.caption = caption
+        self.calls: list[tuple[str, str, int]] = []
+
+    async def answer(
+        self,
+        system: str,
+        prompt: str,
+        images: list[VisionImage],
+        *,
+        detail: str = "auto",
+    ) -> str:
+        self.calls.append((system, prompt, len(images)))
+        return self.caption
 
 
 class FakeEmbeddingProvider:

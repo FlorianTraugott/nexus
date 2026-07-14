@@ -1,0 +1,4 @@
+# Chroma persistent vector store (local data, never commit).
+# Pattern is relative to this file (backend/), so it must be chroma/ — a
+# leading backend/ would wrongly anchor to backend/backend/chroma/.
+chroma/

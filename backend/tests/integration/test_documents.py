@@ -8,7 +8,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from tests.fakes import FakeEmbeddingProvider, ephemeral_store
+from tests.fakes import FakeEmbeddingProvider, FakeVisionProvider, ephemeral_store
 
 from app.api.v1.documents import get_ingestion_runner
 from app.core.config import get_settings
@@ -178,9 +178,17 @@ async def test_run_ingestion_processes_pdf(
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(FIXTURES / "sample_with_image.pdf", destination)
 
+    # Captioning has no injection point in run_ingestion, so fake the vision
+    # provider directly to keep the image branch offline (the fixture image is
+    # above the min-px gate and would otherwise hit the network).
+    monkeypatch.setattr(
+        "app.services.vision.get_vision_provider", lambda: FakeVisionProvider()
+    )
     embedder = FakeEmbeddingProvider()
     store = ephemeral_store()
-    await run_ingestion(db_session, document_id, embedder, store)
+    await run_ingestion(
+        db_session, document_id, embedder, store, image_store=ephemeral_store()
+    )
 
     document = await document_repo.get_document(db_session, document_id)
     assert document is not None
@@ -241,13 +249,21 @@ async def test_run_ingestion_reindex_replaces_vectors(
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(FIXTURES / "sample_with_image.pdf", destination)
 
+    monkeypatch.setattr(
+        "app.services.vision.get_vision_provider", lambda: FakeVisionProvider()
+    )
     embedder = FakeEmbeddingProvider()
     store = ephemeral_store()
-    await run_ingestion(db_session, document_id, embedder, store)
+    image_store = ephemeral_store()
+    await run_ingestion(
+        db_session, document_id, embedder, store, image_store=image_store
+    )
     first_count = store.count()
 
     # Re-ingesting the same document must not duplicate vectors.
-    await run_ingestion(db_session, document_id, embedder, store)
+    await run_ingestion(
+        db_session, document_id, embedder, store, image_store=image_store
+    )
     document = await document_repo.get_document(db_session, document_id)
     assert document is not None
     assert store.count() == first_count == document.chunk_count
