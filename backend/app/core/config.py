@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200
     RAG_TOP_K: int = 5
     RAG_MAX_TOP_K: int = 20
+    VISION_MAX_IMAGES: int = 8
 
     EMBEDDING_PROVIDER: str = "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-small"

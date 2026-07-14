@@ -8,8 +8,10 @@ hand it bytes from any source (an extracted document figure, an upload).
 """
 
 import base64
+import uuid
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Protocol
 
 from openai import AsyncOpenAI
@@ -17,8 +19,10 @@ from openai.types.chat import (
     ChatCompletionContentPartParam,
     ChatCompletionMessageParam,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.db.repositories.document import get_user_document_with_images
 
 
 @dataclass(frozen=True)
@@ -106,4 +110,87 @@ def get_vision_provider() -> VisionProvider:
     # Claude vision is deferred; only the OpenAI backend is wired up.
     raise NotImplementedError(
         f"Vision not supported for provider {settings.LLM_PROVIDER!r}"
+    )
+
+
+class DocumentNotFoundError(Exception):
+    """The document does not exist or does not belong to the user."""
+
+    def __init__(self, document_id: uuid.UUID) -> None:
+        super().__init__(f"Document {document_id} not found")
+        self.document_id = document_id
+
+
+class NoDocumentImagesError(Exception):
+    """The document exists but has no extracted images to ask about."""
+
+    def __init__(self, document_id: uuid.UUID) -> None:
+        super().__init__(f"Document {document_id} has no images")
+        self.document_id = document_id
+
+
+@dataclass(frozen=True)
+class VisionAnswer:
+    """A vision answer plus how many of the document's images were used."""
+
+    answer: str
+    images_used: int
+    images_total: int
+
+
+# Map on-disk suffix to the media type the provider needs. Unknown suffixes
+# fail loud rather than being mislabelled as a fallback type.
+_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
+
+_VISION_SYSTEM = (
+    "You answer the user's question strictly from the provided document "
+    "images. If the answer is not visible in the images, say you cannot "
+    "determine it from the document."
+)
+
+
+async def answer_document_images(
+    db: AsyncSession,
+    document_id: uuid.UUID,
+    user_id: uuid.UUID,
+    question: str,
+    *,
+    detail: str = "auto",
+) -> VisionAnswer:
+    """Answer a question about one user's document using its extracted images.
+
+    Loads the document (user-scoped, images eager-loaded), sends up to
+    VISION_MAX_IMAGES pages to the vision provider in deterministic order, and
+    reports how many images were used versus how many the document holds.
+    """
+    document = await get_user_document_with_images(db, document_id, user_id)
+    if document is None:
+        raise DocumentNotFoundError(document_id)
+
+    images = sorted(document.images, key=lambda im: (im.page_number, im.image_index))
+    if not images:
+        raise NoDocumentImagesError(document_id)
+
+    selected = images[: get_settings().VISION_MAX_IMAGES]
+    vision_images = []
+    for im in selected:
+        path = Path(im.storage_path)
+        suffix = path.suffix.lower()
+        media_type = _MEDIA_TYPES.get(suffix)
+        if media_type is None:
+            raise ValueError(f"Unsupported image type {suffix!r} for {path}")
+        vision_images.append(VisionImage(data=path.read_bytes(), media_type=media_type))
+
+    provider = get_vision_provider()
+    answer = await provider.answer(
+        system=_VISION_SYSTEM, prompt=question, images=vision_images, detail=detail
+    )
+    return VisionAnswer(
+        answer=answer, images_used=len(selected), images_total=len(images)
     )

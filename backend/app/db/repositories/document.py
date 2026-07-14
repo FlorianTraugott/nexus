@@ -4,6 +4,7 @@ import uuid
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models import Document, DocumentChunk, DocumentImage, DocumentSourceType
 
@@ -32,6 +33,24 @@ async def get_user_document(
     if document is None or document.user_id != user_id:
         return None
     return document
+
+
+async def get_user_document_with_images(
+    db: AsyncSession, document_id: uuid.UUID, user_id: uuid.UUID
+) -> Document | None:
+    """Fetch one of a user's documents with its images eager-loaded.
+
+    The Document.images relationship is lazy, so the vision service — which
+    runs outside the request session — must load it up front to avoid a
+    detached-instance lazy load.
+    """
+    stmt = (
+        select(Document)
+        .where(Document.id == document_id, Document.user_id == user_id)
+        .options(selectinload(Document.images))
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def list_user_documents(db: AsyncSession, user_id: uuid.UUID) -> list[Document]:
