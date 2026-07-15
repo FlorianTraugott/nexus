@@ -1,0 +1,200 @@
+# Golden retrieval set — NIST CSF 2.0 corpus.
+# Ground truth is labelled by CONTENT SUBSTRING (expect_contains), not chunk index,
+# so the set survives re-chunking (changing CHUNK_SIZE must not silently rot it).
+# expect_document is the coarse signal: it separates "right doc, wrong section"
+# from "wrong doc entirely" — two genuinely different failures.
+
+# --- Straightforward: answer lives clearly in one document ---
+
+- id: csf-six-functions
+  question: "What are the six Functions of the CSF Core?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "GOVERN"
+    - "RECOVER"
+  notes: "Baseline sanity check. If this misses, retrieval is broken."
+
+- id: csf-govern-definition
+  question: "What does the GOVERN function establish?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "risk management strategy, expectations, and policy"
+  notes: "Confusable with IR 8286 which also discusses risk strategy."
+
+- id: csf-tier-names
+  question: "What are the four CSF Tiers called?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "Adaptive"
+    - "Risk Informed"
+  notes: "Tiers are Partial, Risk Informed, Repeatable, Adaptive."
+
+- id: csf-govern-center-wheel
+  question: "Why is GOVERN placed at the center of the CSF Functions wheel?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "informs how an organization will implement the other five"
+  notes: "Specific rationale, stated once."
+
+- id: csf-old-name
+  question: "What was the Cybersecurity Framework called before version 2.0?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "Framework for Improving"
+  notes: "Buried in the Note to Readers — tests retrieval of front-matter."
+
+- id: csf-least-privilege
+  question: "Which CSF subcategory covers least privilege and separation of duties?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "PR.AA-05"
+  notes: "Deep-in-appendix retrieval. Long tail, many similar subcategory entries."
+
+- id: csf-profile-steps
+  question: "What is the first step in creating a CSF Organizational Profile?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "Scope the Organizational Profile"
+
+- id: csf-supply-chain-pub
+  question: "Which NIST publication gives in-depth guidance on cybersecurity supply chain risk management?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "800-161"
+  notes: "Cross-reference retrieval."
+
+- id: csf-privacy-pram
+  question: "What NIST methodology has a catalog of example problems for privacy risk assessments?"
+  modality: text
+  expect_document: NIST.CSWP.29.pdf
+  expect_contains:
+    - "PRAM"
+  notes: "Acronym retrieval; appears once."
+
+# --- Confusable: topic spans multiple docs, only one truly answers ---
+
+- id: erm-integration-authority
+  question: "How should cybersecurity risk management be integrated with enterprise risk management?"
+  modality: text
+  expect_document: NIST.IR.8286r1.pdf
+  expect_contains:
+    - "enterprise risk"
+  notes: "HARD. CSWP 29 sec 5.2 also discusses ERM integration and cites IR 8286 as the authority. Genuine near-miss."
+
+- id: risk-register
+  question: "What is a cybersecurity risk register and what is it used for?"
+  modality: text
+  expect_document: NIST.IR.8286r1.pdf
+  expect_contains:
+    - "risk register"
+  notes: "HARD. CSWP 29 mentions risk registers in passing; IR 8286 is where they're defined."
+
+- id: risk-appetite-tolerance
+  question: "What is the difference between risk appetite and risk tolerance?"
+  modality: text
+  expect_document: NIST.IR.8286r1.pdf
+  expect_contains:
+    - "risk appetite"
+    - "risk tolerance"
+  notes: "HARD. CSF GV.RM-02 names both terms without defining them; IR 8286 defines them."
+
+# --- Negative: answer is NOT in the corpus ---
+
+- id: absent-gdpr-fines
+  question: "What are the maximum financial penalties under GDPR Article 83?"
+  modality: text
+  expect_document: null
+  expect_contains: []
+  notes: "NEGATIVE. Not in corpus. System should decline, not confabulate."
+
+- id: absent-kubernetes
+  question: "How do I configure a Kubernetes network policy to isolate a namespace?"
+  modality: text
+  expect_document: null
+  expect_contains: []
+  notes: "NEGATIVE. Plausible-sounding security question, absent from corpus."
+
+# --- Image: value exists only inside a figure (synthetic fixture) ---
+
+- id: img-q3-units
+  question: "How many units were sold in Q3 according to the quarterly performance chart?"
+  modality: image
+  expect_document: ocr_test_document.pdf
+  expect_contains:
+    - "42"
+  notes: "Synthetic fixture. 42 appears ONLY in the chart image, never in body text."
+
+- id: img-q1-units
+  question: "What was the Q1 figure in the quarterly performance chart?"
+  modality: image
+  expect_document: ocr_test_document.pdf
+  expect_contains:
+    - "15"
+  notes: "Synthetic fixture."
+
+# --- Quick-Start Guides: straightforward ---
+
+- id: qsg-small-business-audience
+  question: "What guidance does NIST provide specifically for small businesses adopting the CSF?"
+  modality: text
+  expect_document: NIST.SP.1300.pdf
+  expect_contains:
+    - "small business"
+  notes: "SP 1300 is the Small Business QSG. CSWP 29 mentions small orgs in passing, so mildly confusable."
+
+- id: qsg-profiles-guide
+  question: "Which Quick-Start Guide covers creating and using Organizational Profiles?"
+  modality: text
+  expect_document: NIST.SP.1301.pdf
+  expect_contains:
+    - "Organizational Profile"
+  notes: "Meta-question about the guide itself."
+
+# --- Confusable: same substance in two documents ---
+
+- id: profile-steps-practical
+  question: "What are the practical steps for building a Current Profile and a Target Profile?"
+  modality: text
+  expect_document: NIST.SP.1301.pdf
+  expect_contains:
+    - "Target Profile"
+  notes: >
+    HARD. CSWP 29 sec 3.1 lists five steps for Organizational Profiles; SP 1301 is an entire
+    guide on the same thing. Both are legitimately relevant — the QSG is the practical authority.
+    This is the sharpest near-miss in the corpus.
+
+- id: gap-analysis
+  question: "How do I perform a gap analysis between my current and target cybersecurity posture?"
+  modality: text
+  expect_document: NIST.SP.1301.pdf
+  expect_contains:
+    - "gap"
+  notes: "HARD. CSWP 29 step 4 mentions gap analysis; SP 1301 elaborates it."
+
+- id: csf-online-resources
+  question: "What online resources supplement the CSF?"
+  modality: text
+  expect_document: NIST.SP.1299.pdf
+  expect_contains:
+    - "Informative Reference"
+  notes: >
+    HARD. CSWP 29 sec 4 covers exactly this (Informative References, Implementation Examples,
+    Quick-Start Guides) and SP 1299 IS the Resource & Overview Guide. Arguably ambiguous —
+    kept deliberately, and flagged, because a real corpus has ambiguous questions.
+
+# --- Negative ---
+
+- id: absent-soc2
+  question: "What are the SOC 2 Trust Services Criteria?"
+  modality: text
+  expect_document: null
+  expect_contains: []
+  notes: "NEGATIVE. Adjacent compliance framework, absent from corpus."

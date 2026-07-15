@@ -51,3 +51,7 @@ Thumbs.db
 
 # Uploaded documents (local storage)
 backend/uploads/
+backend/evals/corpus/*.pdf
+
+# Eval corpus: large public-domain PDFs are fetched, not committed
+backend/evals/corpus/NIST.*.pdf

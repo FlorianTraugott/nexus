@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     SEARCH_MAX_RESULTS: int = 5
     TAVILY_API_KEY: str = ""
 
+    # Retrieval eval harness: the dedicated, reproducible corpus is ingested
+    # under this local-only account so eval documents never mix with real users.
+    EVAL_USER_EMAIL: str = "eval@nexus.local"
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
