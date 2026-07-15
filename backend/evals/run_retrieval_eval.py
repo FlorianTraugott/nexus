@@ -32,6 +32,7 @@ from app.db.repositories import user as user_repo
 from app.db.session import AsyncSessionLocal
 from app.services.image_retrieval import image_retrieve
 from app.services.retrieval import retrieve
+from app.services.retrieval_policy import passes_distance_gate
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "retrieval.yaml"
 SNIPPET_CHARS = 120
@@ -107,6 +108,18 @@ def load_golden(path: Path) -> list[Question]:
 def _contains_any(text: str, needles: list[str]) -> bool:
     low = text.lower()
     return any(n.lower() in low for n in needles)
+
+
+def _abstained(hits: list[Hit], max_distance: float) -> bool:
+    """Mirror the production query gate exactly (query.py / vision.py).
+
+    Reuses passes_distance_gate so the eval measures the deployed policy, not a
+    re-derived copy. The (not hits) check is first so min() is never called on an
+    empty list.
+    """
+    return not hits or not passes_distance_gate(
+        min(h.distance for h in hits), max_distance
+    )
 
 
 async def _hits_for(
@@ -231,7 +244,7 @@ def _print_negatives(
     print("  (compare: do negatives sit at clearly larger distances?)")
 
 
-def build_report(results: list[QResult], k: int) -> dict[str, Any]:
+def build_report(results: list[QResult], k: int, max_distance: float) -> dict[str, Any]:
     answerable = [r for r in results if not r.q.is_negative]
     negatives = [r for r in results if r.q.is_negative]
     answerable_top1 = [
@@ -240,12 +253,23 @@ def build_report(results: list[QResult], k: int) -> dict[str, Any]:
     mean_answerable_top1 = (
         sum(answerable_top1) / len(answerable_top1) if answerable_top1 else None
     )
+    # Score the abstention gate: negatives should abstain, answerable should not.
+    neg_abstained = sum(1 for r in negatives if _abstained(r.hits, max_distance))
+    false_abstentions = sum(1 for r in answerable if _abstained(r.hits, max_distance))
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "k": k,
+        "rag_max_distance": max_distance,
         "n_questions": len(results),
         "n_answerable": len(answerable),
         "n_negative": len(negatives),
+        "abstention": {
+            "rag_max_distance": max_distance,
+            "negatives_correctly_abstained": neg_abstained,
+            "negatives_total": len(negatives),
+            "answerable_false_abstentions": false_abstentions,
+            "answerable_total": len(answerable),
+        },
         "overall": _agg(answerable),
         "by_modality": {
             "text": _agg([r for r in answerable if r.q.modality == "text"]),
@@ -274,6 +298,7 @@ def build_report(results: list[QResult], k: int) -> dict[str, Any]:
                 "doc_top1": r.doc_top1,
                 "top1_doc": r.top1_doc,
                 "top1_distance": r.top1_distance,
+                "abstained": _abstained(r.hits, max_distance),
                 "retrieved": [
                     {
                         "rank": h.rank,
@@ -309,6 +334,21 @@ def print_report(results: list[QResult], report: dict[str, Any]) -> None:
         _print_negatives(
             negatives, report["negatives"]["mean_answerable_top1_distance"]
         )
+
+    _print_abstention(report["abstention"])
+
+
+def _print_abstention(ab: dict[str, Any]) -> None:
+    print(f"\nAbstention gate (RAG_MAX_DISTANCE = {ab['rag_max_distance']:.3f})")
+    print("-" * 60)
+    print(
+        f"  negatives correctly abstained: "
+        f"{ab['negatives_correctly_abstained']}/{ab['negatives_total']}"
+    )
+    print(
+        f"  answerable false-abstentions:  "
+        f"{ab['answerable_false_abstentions']} (should be 0)"
+    )
 
 
 async def main() -> None:
@@ -348,12 +388,12 @@ async def main() -> None:
             hits = await _hits_for(session, q, user.id, k, doc_map)
             results.append(score(q, hits))
 
-    report = build_report(results, k)
+    report = build_report(results, k, settings.RAG_MAX_DISTANCE)
     print_report(results, report)
 
     if args.json is not None:
         args.json.parent.mkdir(parents=True, exist_ok=True)
-        args.json.write_text(json.dumps(report, indent=2))
+        args.json.write_text(json.dumps(report, indent=2) + "\n")
         print(f"\nWrote {args.json}")
 
 
