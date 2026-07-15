@@ -20,8 +20,9 @@
   modality: text
   expect_document: NIST.CSWP.29.pdf
   expect_contains:
-    - "risk management strategy, expectations, and policy"
-  notes: "Confusable with IR 8286 which also discusses risk strategy."
+    - "Governance activities are critical"
+    - "enterprise risk management"
+  notes: "Points at GOVERN prose, not the Appendix A table header where the exact phrase lives."
 
 - id: csf-tier-names
   question: "What are the four CSF Tiers called?"
@@ -69,7 +70,11 @@
   expect_document: NIST.CSWP.29.pdf
   expect_contains:
     - "800-161"
-  notes: "Cross-reference retrieval."
+  notes: >
+    HARD. "800-161" is the answer; CSWP 29 sec 5.2 cites it, but that passage embeds near
+    IR 8286 (ERM-adjacent). hit@k measures the substring; doc-top1 will show the doc-ranking miss.
+    Kept as-is deliberately — this is a real confusable, and the doc-level miss is a true finding,
+    not a label error.
 
 - id: csf-privacy-pram
   question: "What NIST methodology has a catalog of example problems for privacy risk assessments?"
