@@ -125,6 +125,43 @@ async def _caption_images(
     return captioned
 
 
+async def index_captioned_images(
+    store: VectorStore,
+    embedder: EmbeddingProvider,
+    document: Document,
+    captioned: list[tuple[DocumentImage, str]],
+) -> None:
+    """Embed image captions and upsert them into the image collection.
+
+    Deliberately does NOT delete first: this is the additive add-path, reused by
+    both ingest (which clears separately, in _index_images) and the backfill
+    (which must never wipe a document's already-indexed images). VectorStore.add
+    is an upsert, so re-adding the same id is idempotent.
+
+    user_id in the metadata comes from the image's parent document — the scoping
+    key retrieval filters on. It must always be that document's owner.
+    """
+    if not captioned:
+        return
+    captions = [caption for _, caption in captioned]
+    embeddings = await embedder.embed_texts(captions)
+    await asyncio.to_thread(
+        store.add,
+        [str(image.id) for image, _ in captioned],
+        embeddings,
+        captions,
+        [
+            {
+                "document_id": str(document.id),
+                "user_id": str(document.user_id),
+                "image_id": str(image.id),
+                "page_number": image.page_number,
+            }
+            for image, _ in captioned
+        ],
+    )
+
+
 async def _index_images(
     store: VectorStore,
     embedder: EmbeddingProvider,
@@ -142,25 +179,7 @@ async def _index_images(
     try:
         # Chroma's client is synchronous, so run it off the event loop.
         await asyncio.to_thread(store.delete_by_document, document.id)
-        if not captioned:
-            return
-        captions = [caption for _, caption in captioned]
-        embeddings = await embedder.embed_texts(captions)
-        await asyncio.to_thread(
-            store.add,
-            [str(image.id) for image, _ in captioned],
-            embeddings,
-            captions,
-            [
-                {
-                    "document_id": str(document.id),
-                    "user_id": str(document.user_id),
-                    "image_id": str(image.id),
-                    "page_number": image.page_number,
-                }
-                for image, _ in captioned
-            ],
-        )
+        await index_captioned_images(store, embedder, document, captioned)
     except Exception:
         log.warning("image_indexing_failed", document_id=str(document.id))
 
