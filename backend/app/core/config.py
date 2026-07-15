@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200
     RAG_TOP_K: int = 5
     RAG_MAX_TOP_K: int = 20
+    # If the best (smallest) retrieval distance is beyond this, the query/vision
+    # endpoints abstain rather than answer from irrelevant context — cheap
+    # insurance against confabulating from far-off chunks.
+    RAG_MAX_DISTANCE: float = 0.5
     VISION_MAX_IMAGES: int = 8
     # Images narrower or shorter than this (px) are skipped before the billable
     # caption call: icons, bullets, and decorative rules carry nothing to index.

@@ -32,6 +32,9 @@ _VECTORS = {
     "bravo banana": [0.0, 1.0, 0.0],
     "charlie cherry": [0.0, 0.0, 1.0],
     "find bravo": [0.0, 1.0, 0.0],
+    # A distinct chunk that also matches "find bravo" (distance 0), so the
+    # scoping test can retrieve the owner's chunk within the abstention gate.
+    "bravo mine": [0.0, 1.0, 0.0],
 }
 
 
@@ -158,8 +161,8 @@ async def test_query_requires_authentication(env: _Env) -> None:
 
 
 async def test_query_is_scoped_to_user(env: _Env) -> None:
-    mine = await _seed_user_chunks(env, ["alpha apple"])
-    await _seed_user_chunks(env, ["bravo banana"])  # another user's chunk
+    mine = await _seed_user_chunks(env, ["bravo mine"])
+    await _seed_user_chunks(env, ["bravo banana"])  # another user's matching chunk
 
     response = await env.client.post(
         QUERY, json={"question": "find bravo", "k": 5}, headers=_auth(mine)
@@ -167,8 +170,27 @@ async def test_query_is_scoped_to_user(env: _Env) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert {c["content_preview"] for c in body["citations"]} == {"alpha apple"}
+    # The query matches BOTH users' chunks equally (distance 0), yet only the
+    # owner's chunk is retrievable — the other user's "bravo banana" is scoped
+    # out entirely, so it appears in neither the citations nor the answer.
+    assert {c["content_preview"] for c in body["citations"]} == {"bravo mine"}
     assert "bravo banana" not in body["answer"]
+
+
+async def test_query_abstains_when_best_match_is_too_far(env: _Env) -> None:
+    # The only chunk is orthogonal to the query (cosine distance 1.0 > the 0.5
+    # gate), so the endpoint abstains without calling the generator.
+    user_id = await _seed_user_chunks(env, ["alpha apple"])
+
+    response = await env.client.post(
+        QUERY, json={"question": "find bravo", "k": 5}, headers=_auth(user_id)
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["citations"] == []
+    assert "could not find anything relevant" in body["answer"].lower()
+    assert env.generator.calls == []  # generator was never invoked
 
 
 async def test_query_answer_is_grounded_in_cited_chunks(env: _Env) -> None:

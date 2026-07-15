@@ -17,12 +17,16 @@ from app.services.generation import (
     get_generation_provider,
 )
 from app.services.retrieval import retrieve
+from app.services.retrieval_policy import passes_distance_gate
 from app.services.vector_store import VectorStore, get_vector_store
 
 router = APIRouter(prefix="/query", tags=["query"])
 
 # Citations carry a snippet for display, not the full chunk text.
 _PREVIEW_CHARS = 280
+
+# Returned instead of a generated answer when nothing relevant was retrieved.
+_NO_ANSWER = "I could not find anything relevant in your documents to answer that."
 
 
 @router.post("", response_model=QueryResponse)
@@ -49,6 +53,17 @@ async def query(
         embedder=embedder,
         store=store,
     )
+
+    # Abstain before spending a generation call on irrelevant context. min()
+    # rather than results[0]: this gate exists to prevent confabulation, so it
+    # must not depend on retrieve()'s ascending-order guarantee holding — if that
+    # ever changed, results[0] would misfire toward answering when it should
+    # abstain, the dangerous direction. min() is cheap insurance on a k-sized list.
+    max_distance = get_settings().RAG_MAX_DISTANCE
+    if not results or not passes_distance_gate(
+        min(r.distance for r in results), max_distance
+    ):
+        return QueryResponse(answer=_NO_ANSWER, citations=[])
 
     system, prompt = build_prompt(payload.question, [r.chunk.content for r in results])
     answer = await generator.generate(system, prompt)

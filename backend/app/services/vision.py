@@ -26,6 +26,7 @@ from app.core.config import get_settings
 from app.db.models import DocumentImage
 from app.db.repositories.document import get_user_document_with_images
 from app.services.image_retrieval import image_retrieve
+from app.services.retrieval_policy import passes_distance_gate
 
 
 @dataclass(frozen=True)
@@ -297,7 +298,15 @@ async def search_document_images(
     no sources rather than raising.
     """
     hits = await image_retrieve(session=db, query=question, user_id=user_id, k=k)
-    if not hits:
+    # Abstain before spending a vision call on irrelevant images. min() rather
+    # than hits[0]: this gate exists to prevent confabulation, so it must not
+    # depend on image_retrieve()'s ascending-order guarantee holding — if that
+    # ever changed, hits[0] would misfire toward answering when it should
+    # abstain, the dangerous direction. min() is cheap insurance on a k-sized list.
+    max_distance = get_settings().RAG_MAX_DISTANCE
+    if not hits or not passes_distance_gate(
+        min(h.distance for h in hits), max_distance
+    ):
         return ImageSearchAnswer(answer=_NO_IMAGE_ANSWER, sources=[])
 
     capped = hits[: get_settings().VISION_MAX_IMAGES]
