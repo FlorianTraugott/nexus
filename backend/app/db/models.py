@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDMixin
@@ -88,12 +88,21 @@ class Conversation(UUIDMixin, TimestampMixin, Base):
     messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation",
         cascade="all, delete-orphan",
-        order_by="Message.created_at",
+        # Order by the explicit per-conversation ordinal, not created_at: both
+        # messages of a turn commit in one transaction and Postgres now() returns
+        # transaction-start time, so they share created_at and would sort
+        # non-deterministically.
+        order_by="Message.position",
     )
 
 
 class Message(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "messages"
+    # Position is the sole source of intra-conversation order. The UNIQUE
+    # constraint makes a duplicate position raise IntegrityError immediately
+    # rather than silently reintroducing the non-deterministic ordering this
+    # column exists to fix; it also serves as the index for ORDER BY position.
+    __table_args__ = (UniqueConstraint("conversation_id", "position"),)
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("conversations.id", ondelete="CASCADE"),
@@ -104,6 +113,11 @@ class Message(UUIDMixin, TimestampMixin, Base):
         Enum(MessageRole, native_enum=False, length=20), nullable=False
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 0-based ordinal within the conversation; assigned as max(position)+1.
+    position: Mapped[int] = mapped_column(nullable=False)
+    # Assistant-message citations as JSON (Citation.model_dump); NULL for user
+    # messages and [] for an abstention turn (a real turn with no sources).
+    citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
