@@ -1,34 +1,50 @@
-"""Research endpoint: run the multi-agent pipeline over the user's own corpus."""
+"""Research endpoints: schedule an async run over the user's corpus, then poll.
 
+POST creates a persisted task and returns immediately (202); a background task
+runs the multi-agent pipeline; GET polls for status and, once done, the result.
+"""
+
+import uuid
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.orchestrator import run_research
 from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.db.models import User
+from app.db.repositories import research as research_repo
 from app.db.session import get_db
-from app.schemas.research import ResearchRequest, ResearchResponse, ResearchState
-from app.services.embeddings import EmbeddingProvider, get_embedding_provider
-from app.services.generation import GenerationProvider, get_generation_provider
-from app.services.search import SearchProvider, get_search_provider
-from app.services.vector_store import VectorStore, get_vector_store
+from app.schemas.research import (
+    ResearchRequest,
+    ResearchResponse,
+    ResearchTaskCreated,
+    ResearchTaskRead,
+)
+from app.services.research_runner import run_research_task
 
 router = APIRouter(prefix="/research", tags=["research"])
 
+ResearchRunner = Callable[[uuid.UUID], Awaitable[None]]
 
-@router.post("", response_model=ResearchResponse)
-async def research(
+
+def get_research_runner() -> ResearchRunner:
+    # Indirection so tests can swap in a runner bound to their session/providers,
+    # mirroring get_ingestion_runner.
+    return run_research_task
+
+
+@router.post(
+    "", response_model=ResearchTaskCreated, status_code=status.HTTP_202_ACCEPTED
+)
+async def create_research_task(
     payload: ResearchRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    search: Annotated[SearchProvider, Depends(get_search_provider)],
-    embedder: Annotated[EmbeddingProvider, Depends(get_embedding_provider)],
-    store: Annotated[VectorStore, Depends(get_vector_store)],
-    generator: Annotated[GenerationProvider, Depends(get_generation_provider)],
-) -> ResearchResponse:
+    background_tasks: BackgroundTasks,
+    runner: Annotated[ResearchRunner, Depends(get_research_runner)],
+) -> ResearchTaskCreated:
     max_k = get_settings().RAG_MAX_TOP_K
     if payload.k is not None and payload.k > max_k:
         raise HTTPException(
@@ -37,25 +53,39 @@ async def research(
         )
 
     # user_id from the token, never the payload, so a run only sees its own corpus.
-    state = ResearchState(topic=payload.topic, user_id=current_user.id, k=payload.k)
-    state = await run_research(
-        state,
-        db,
-        search=search,
-        embedder=embedder,
-        store=store,
-        generator=generator,
+    task = await research_repo.create_task(
+        db, current_user.id, payload.topic, payload.k
     )
+    await db.commit()
 
-    # A recorded pipeline failure is a 200 with `error` set, not a 5xx: the
-    # completed run (incl. partial state + warnings) is the resource to inspect.
-    return ResearchResponse(
-        topic=state.topic,
-        stage=state.stage,
-        web=state.web,
-        kb=state.kb,
-        summary=state.summary,
-        report=state.report,
-        warnings=state.warnings,
-        error=state.error,
+    background_tasks.add_task(runner, task.id)
+    return ResearchTaskCreated(task_id=task.id, status=task.status)
+
+
+@router.get("/{task_id}", response_model=ResearchTaskRead)
+async def get_research_task(
+    task_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ResearchTaskRead:
+    task = await research_repo.get_user_task(db, task_id, current_user.id)
+    # Same 404 for missing and other-user, so a probe can't distinguish them.
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Research task not found"
+        )
+
+    result = (
+        ResearchResponse.model_validate(task.result)
+        if task.result is not None
+        else None
+    )
+    return ResearchTaskRead(
+        task_id=task.id,
+        topic=task.topic,
+        status=task.status,
+        result=result,
+        error=task.error,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
     )
