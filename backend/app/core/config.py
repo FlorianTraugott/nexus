@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # endpoints abstain rather than answer from irrelevant context — cheap
     # insurance against confabulating from far-off chunks.
     RAG_MAX_DISTANCE: float = 0.5
+    # How many prior messages feed the follow-up query rewrite. The referent of a
+    # follow-up ("the second one", "it") lives in the last turn or two; more
+    # history is token cost without disambiguation benefit.
+    REWRITE_HISTORY_TURNS: int = 3
     VISION_MAX_IMAGES: int = 8
     # Images narrower or shorter than this (px) are skipped before the billable
     # caption call: icons, bullets, and decorative rules carry nothing to index.
