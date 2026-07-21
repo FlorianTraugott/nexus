@@ -4,6 +4,7 @@
 
 import axios, {
   AxiosError,
+  isAxiosError,
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
@@ -27,6 +28,28 @@ export class RateLimitError extends Error {
     super(message);
     this.name = "RateLimitError";
   }
+}
+
+// The ONE signal that a session is truly dead. Thrown by the response interceptor
+// only when /auth/refresh returns a genuine HTTP 401 (the refresh token is
+// revoked or invalid). Callers (the auth store) clear tokens ONLY on this — never
+// on a cancelled or transient failure, which are not authentication failures.
+export class SessionExpiredError extends Error {
+  constructor(message = "Your session has expired. Please sign in again.") {
+    super(message);
+    this.name = "SessionExpiredError";
+  }
+}
+
+// One home for "does this error mean the session is dead?". A wrapped
+// SessionExpiredError, or a genuine 401 that reached the caller unwrapped (e.g. a
+// retried request rejected a second time). Used by the store's catch blocks so
+// the "session truly dead" definition lives in a single place.
+export function isSessionExpiredError(err: unknown): boolean {
+  return (
+    err instanceof SessionExpiredError ||
+    (isAxiosError(err) && err.response?.status === 401)
+  );
 }
 
 // --- redirect-on-session-loss hook -----------------------------------------
@@ -62,6 +85,15 @@ function isNoRefreshPath(url: string | undefined): boolean {
 // same promise, and all retries use the single new access token it resolves to.
 let refreshPromise: Promise<string> | null = null;
 
+// Known residual race (accepted, deferred): refresh tokens rotate and are
+// single-use, so the server revokes the old token the moment /auth/refresh is
+// received. If a reload lands inside the ~one-RTT refresh round-trip, the page is
+// torn down before setTokens() persists the new pair, leaving storage with the
+// old — now revoked — token; the next load's refresh then 401s genuinely and logs
+// out. This cannot be fully closed client-side. The complete fix is a backend
+// reuse-with-leeway grace window (accept a just-rotated token briefly), which
+// weakens the single-use rotation guarantee and needs its own approved segment.
+//
 // Perform the refresh on a BARE axios call (not `api`), so it bypasses this very
 // interceptor — otherwise a 401 from refresh would re-enter the refresh logic.
 async function performRefresh(): Promise<string> {
@@ -127,10 +159,19 @@ api.interceptors.response.use(
       original.headers.set("Authorization", `Bearer ${newAccessToken}`);
       return api(original);
     } catch (refreshError) {
-      // Refresh failed -> the session is gone. Clear tokens and let the app
-      // redirect. Reject with the ORIGINAL error so callers see the real 401.
-      clearTokens();
-      onUnauthorized?.();
+      // Only a genuine HTTP 401 from /auth/refresh means the session is truly
+      // dead (the refresh token is revoked or invalid): clear tokens, signal the
+      // app to redirect, and surface the typed SessionExpiredError.
+      if (isAxiosError(refreshError) && refreshError.response?.status === 401) {
+        clearTokens();
+        onUnauthorized?.();
+        return Promise.reject(new SessionExpiredError());
+      }
+      // A cancelled request (navigation/reload — axios.isCancel / ERR_CANCELED),
+      // a network error (no response), or a 5xx is NOT an authentication failure;
+      // the tokens may be perfectly valid. Reject the ORIGINAL error WITHOUT
+      // clearing tokens or firing onUnauthorized, so the next load/retry recovers.
+      // (Treating a cancelled-by-reload request as a logout was the reload bug.)
       return Promise.reject(error);
     }
   },

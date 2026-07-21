@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { useAuthStore } from "@/stores/auth";
+import { useRedirectWhenAuthenticated } from "@/hooks/use-redirect-when-authenticated";
 import { mapAuthError, validateEmail, validatePassword } from "@/lib/auth-forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  // Already-authenticated visitors are sent to / (loading-gated); see the hook.
+  const redirecting = useRedirectWhenAuthenticated();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +51,14 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (redirecting) {
+    return (
+      <div className="flex min-h-full flex-1 items-center justify-center p-4 text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
   }
 
   return (

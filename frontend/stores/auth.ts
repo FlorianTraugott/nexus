@@ -10,6 +10,7 @@
 import { create } from "zustand";
 
 import * as authApi from "@/lib/auth-api";
+import { isSessionExpiredError } from "@/lib/api";
 import {
   clearTokens,
   getAccessToken,
@@ -46,8 +47,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await authApi.me();
       set({ user, isAuthenticated: true });
     } catch (err) {
-      clearTokens();
-      set({ user: null, isAuthenticated: false });
+      // Clear only if the session is genuinely dead. A transient me() failure
+      // right after a fresh login must not wipe the just-issued tokens.
+      if (isSessionExpiredError(err)) {
+        clearTokens();
+        set({ user: null, isAuthenticated: false });
+      }
       throw err;
     }
   },
@@ -84,10 +89,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const user = await authApi.me();
       set({ user, isAuthenticated: true });
-    } catch {
-      clearTokens();
-      set({ user: null, isAuthenticated: false });
+    } catch (err) {
+      // Clear the session ONLY when it is truly dead (SessionExpiredError from the
+      // refresh flow, or a genuine 401). A cancelled /auth/me — e.g. a rapid
+      // reload aborting the in-flight request — or a transient network error is
+      // NOT an auth failure; leave tokens intact so the next load recovers. This
+      // was the reload-logout bug: the bare catch treated a cancelled request as
+      // a logout.
+      if (isSessionExpiredError(err)) {
+        clearTokens();
+        set({ user: null, isAuthenticated: false });
+      }
     } finally {
+      // Always, including on error — a stuck isLoading would hang protected routes.
       set({ isLoading: false });
     }
   },
