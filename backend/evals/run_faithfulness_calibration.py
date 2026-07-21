@@ -11,7 +11,6 @@ calibration does not depend on the corpus or the eval user.
 Run from backend/ with the venv active and ANTHROPIC_API_KEY set:
 
     python -m evals.run_faithfulness_calibration
-    python -m evals.run_faithfulness_calibration --threshold 0.8
     python -m evals.run_faithfulness_calibration --only unfaithful-1
     python -m evals.run_faithfulness_calibration --json evals/results/judge_calibration.json
 """
@@ -34,9 +33,6 @@ from app.services.faithfulness import (
 )
 
 CALIBRATION_PATH = Path(__file__).parent / "faithfulness_calibration.yaml"
-# The judge is faithful/unfaithful at this score; 0.5 means "more claims
-# supported than not". A calibration run is also how you pick this number.
-DEFAULT_THRESHOLD = 0.5
 
 
 @dataclass(frozen=True)
@@ -66,14 +62,26 @@ class JudgeError:
 class Outcome:
     entry: Entry
     verdict: FaithfulnessVerdict
-    threshold: float
+
+    @property
+    def unsupported_count(self) -> int:
+        return sum(1 for c in self.verdict.claims if not c.supported)
 
     @property
     def judge_faithful(self) -> bool | None:
-        """None for an abstention: no claims means nothing to score."""
+        """Faithful IFF zero unsupported claims. None for an abstention.
+
+        NOT score >= threshold: claim granularity varies by judge -- the same
+        answer split into 2 vs 4 claims yields 0.50 vs 0.25 -- so any fixed
+        fractional threshold is unstable across models and would flip the
+        verdict on identical reasoning. "Any unsupported claim is unfaithful" is
+        granularity-invariant and is the honest bar: an answer with one
+        fabricated claim is not half-faithful. score is kept as a severity
+        measure (0.25 is worse than 0.83), not as the verdict.
+        """
         if self.verdict.score is None:
             return None
-        return self.verdict.score >= self.threshold
+        return self.unsupported_count == 0
 
     @property
     def agrees(self) -> bool | None:
@@ -123,7 +131,7 @@ def _label(faithful: bool | None) -> str:
 def _print_table(outcomes: list[Outcome]) -> None:
     header = (
         f"{'id':<24}{'human':<13}{'judge':<13}{'score':>7}"
-        f"{'claims':>8}  {'agree':<6}"
+        f"{'claims':>8}{'unsup':>7}  {'agree':<6}"
     )
     print(header)
     print("-" * len(header))
@@ -132,7 +140,7 @@ def _print_table(outcomes: list[Outcome]) -> None:
         print(
             f"{o.entry.id:<24}{_label(o.entry.human_faithful):<13}"
             f"{_label(o.judge_faithful):<13}{_fmt(o.verdict.score):>7}"
-            f"{len(o.verdict.claims):>8}  {agree:<6}"
+            f"{len(o.verdict.claims):>8}{o.unsupported_count:>7}  {agree:<6}"
         )
 
 
@@ -154,9 +162,7 @@ def _print_disagreements(outcomes: list[Outcome]) -> None:
             print(f"  {mark} {c.claim!r}\n      {c.reason}")
 
 
-def build_report(
-    outcomes: list[Outcome], errors: list[JudgeError], threshold: float
-) -> dict[str, Any]:
+def build_report(outcomes: list[Outcome], errors: list[JudgeError]) -> dict[str, Any]:
     settings = get_settings()
     scorable = [o for o in outcomes if o.agrees is not None]
     abstentions = [o for o in outcomes if o.agrees is None]
@@ -166,7 +172,9 @@ def build_report(
         "judge_provider": settings.JUDGE_PROVIDER,
         "judge_model": settings.JUDGE_MODEL,
         "generator_model": settings.GENERATION_MODEL,
-        "threshold": threshold,
+        # Verdict rule: faithful IFF unsupported_count == 0 (granularity-invariant).
+        # No fractional threshold -- score is severity only, not the verdict.
+        "verdict_rule": "faithful_iff_zero_unsupported",
         # n_entries counts everything attempted, errors included, so the parts
         # (scorable + abstentions + errors) reconcile against the whole.
         "n_entries": len(outcomes) + len(errors),
@@ -192,6 +200,7 @@ def build_report(
                 "human_faithful": o.entry.human_faithful,
                 "judge_faithful": o.judge_faithful,
                 "score": o.verdict.score,
+                "unsupported_count": o.unsupported_count,
                 "is_abstention": o.verdict.is_abstention,
                 "agrees": o.agrees,
                 "claims": [
@@ -216,7 +225,7 @@ def print_report(outcomes: list[Outcome], report: dict[str, Any]) -> None:
     print(
         f"({report['n_entries']} entries, {report['n_scorable']} scorable, "
         f"{report['n_abstentions']} abstentions, {report['n_errors']} judge "
-        f"errors; threshold {report['threshold']:.2f})\n"
+        f"errors; verdict = faithful iff 0 unsupported claims)\n"
     )
     _print_table(outcomes)
     _print_disagreements(outcomes)
@@ -237,19 +246,9 @@ def print_report(outcomes: list[Outcome], report: dict[str, Any]) -> None:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Faithfulness judge calibration")
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=DEFAULT_THRESHOLD,
-        help=f"score at/above which the judge calls an answer faithful "
-        f"(default {DEFAULT_THRESHOLD})",
-    )
     parser.add_argument("--json", type=Path, default=None, help="write JSON artifact")
     parser.add_argument("--only", type=str, default=None, help="run a single entry id")
     args = parser.parse_args()
-
-    if not 0.0 <= args.threshold <= 1.0:
-        raise SystemExit(f"--threshold must be in [0, 1], got {args.threshold}")
 
     entries = load_calibration(CALIBRATION_PATH)
     if args.only is not None:
@@ -274,9 +273,9 @@ async def main() -> None:
             print(f"  {exc.raw[:500]!r}")
             errors.append(JudgeError(entry=entry, message=str(exc), raw=exc.raw))
             continue
-        outcomes.append(Outcome(entry=entry, verdict=verdict, threshold=args.threshold))
+        outcomes.append(Outcome(entry=entry, verdict=verdict))
 
-    report = build_report(outcomes, errors, args.threshold)
+    report = build_report(outcomes, errors)
     print_report(outcomes, report)
 
     if args.json is not None:
