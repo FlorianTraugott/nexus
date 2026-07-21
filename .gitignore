@@ -55,3 +55,4 @@ backend/evals/corpus/*.pdf
 
 # Eval corpus: large public-domain PDFs are fetched, not committed
 backend/evals/corpus/NIST.*.pdf
+NEXUS_MASTER_PLAN_v2.pdf
