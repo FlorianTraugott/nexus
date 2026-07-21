@@ -30,6 +30,36 @@ def test_build_prompt_handles_empty_context() -> None:
     assert "Question: anything?" in user
 
 
+def test_build_prompt_without_history_is_unchanged() -> None:
+    # Omitting history must reproduce the pre-9B.3 output byte-for-byte, so the
+    # faithfulness baseline (which never passes history) stays comparable.
+    system_none, user_none = build_prompt("What is X?", ["a fact"])
+    system_empty, user_empty = build_prompt("What is X?", ["a fact"], history=[])
+
+    assert system_none == system_empty
+    assert user_none == user_empty
+    assert "Previous conversation:" not in user_none
+    assert "conversation" not in system_none  # no framing clause on a single turn
+    assert user_none == "Context passages:\n[1] a fact\n\nQuestion: What is X?"
+
+
+def test_build_prompt_with_history_renders_block_and_framing_clause() -> None:
+    history = [("user", "tell me about bravo"), ("assistant", "bravo is a fruit")]
+    system, user = build_prompt("what about it?", ["a fact"], history=history)
+
+    # The delimited history block precedes the passages and the question.
+    assert "Previous conversation:" in user
+    assert "user: tell me about bravo" in user
+    assert "assistant: bravo is a fruit" in user
+    assert user.index("Previous conversation:") < user.index("Context passages:")
+    assert "[1] a fact" in user
+    assert "Question: what about it?" in user
+
+    # The framing rule is stated: history clarifies intent, never grounds a claim.
+    assert "ONLY to understand what the user is asking" in system
+    assert "never from the conversation" in system
+
+
 async def test_fake_provider_is_deterministic_and_records_calls() -> None:
     provider = FakeGenerationProvider(answer="grounded")
 

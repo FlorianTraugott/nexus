@@ -1,8 +1,9 @@
 """Application settings, loaded from the environment and validated at startup."""
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +44,14 @@ class Settings(BaseSettings):
     # follow-up ("the second one", "it") lives in the last turn or two; more
     # history is token cost without disambiguation benefit.
     REWRITE_HISTORY_TURNS: int = 3
+    # How many prior messages feed the GENERATION prompt as conversational framing.
+    # Separate from REWRITE_HISTORY_TURNS on purpose: the two jobs differ (rewrite
+    # needs just the last turn's referent; generation wants enough dialogue to read
+    # the user's intent), so coupling them means tuning one silently breaks the
+    # other. The query endpoint loads history ONCE at this (larger) limit and the
+    # rewrite slices the last REWRITE_HISTORY_TURNS off it, so this must stay >=
+    # REWRITE_HISTORY_TURNS (enforced by the validator below).
+    MEMORY_HISTORY_TURNS: int = 6
     VISION_MAX_IMAGES: int = 8
     # Images narrower or shorter than this (px) are skipped before the billable
     # caption call: icons, bullets, and decorative rules carry nothing to index.
@@ -93,6 +102,21 @@ class Settings(BaseSettings):
     # Retrieval eval harness: the dedicated, reproducible corpus is ingested
     # under this local-only account so eval documents never mix with real users.
     EVAL_USER_EMAIL: str = "eval@nexus.local"
+
+    @model_validator(mode="after")
+    def _memory_covers_rewrite_history(self) -> Self:
+        # The query endpoint loads history once at MEMORY_HISTORY_TURNS and the
+        # rewrite slices REWRITE_HISTORY_TURNS off the tail. If memory were the
+        # smaller of the two, the rewrite would silently see less history than it
+        # is configured for -- a bug nobody would notice. Fail loudly at startup.
+        if self.MEMORY_HISTORY_TURNS < self.REWRITE_HISTORY_TURNS:
+            raise ValueError(
+                "MEMORY_HISTORY_TURNS "
+                f"({self.MEMORY_HISTORY_TURNS}) must be >= REWRITE_HISTORY_TURNS "
+                f"({self.REWRITE_HISTORY_TURNS}): the query endpoint loads history "
+                "once at MEMORY_HISTORY_TURNS and the rewrite slices its tail."
+            )
+        return self
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -94,16 +94,25 @@ async def query(
     # The REWRITTEN question drives retrieval only; the ORIGINAL question is what
     # the LLM answers and what the transcript records (the user asked what they
     # asked — the rewrite fixes embedding, not intent).
+    #
+    # History is loaded ONCE, at the larger MEMORY_HISTORY_TURNS limit: the rewrite
+    # slices the last REWRITE_HISTORY_TURNS off the tail, and the full list frames
+    # the generation prompt further down. memory_history stays [] when there is no
+    # conversation, so build_prompt below receives no history and its output is
+    # byte-identical to today (keeping the faithfulness baseline comparable).
     retrieval_question = payload.question
     rewritten_question: str | None = None
+    memory_history: list[tuple[str, str]] = []
     if payload.conversation_id is not None:
-        history = await conversation_repo.list_recent_messages(
-            db, payload.conversation_id, get_settings().REWRITE_HISTORY_TURNS
+        settings = get_settings()
+        messages = await conversation_repo.list_recent_messages(
+            db, payload.conversation_id, settings.MEMORY_HISTORY_TURNS
         )
-        if history:
+        memory_history = [(m.role.value, m.content) for m in messages]
+        if memory_history:
             rewritten_question = await rewrite_query(
                 payload.question,
-                [(message.role.value, message.content) for message in history],
+                memory_history[-settings.REWRITE_HISTORY_TURNS :],
                 generator=generator,
             )
             retrieval_question = rewritten_question
@@ -129,8 +138,13 @@ async def query(
         answer = _NO_ANSWER
         citations: list[Citation] = []
     else:
+        # Prior turns frame the answer (resolve pronouns/references) but never
+        # ground it; build_prompt's system clause enforces that. None when there is
+        # no conversation, so this call matches today's exactly.
         system, prompt = build_prompt(
-            payload.question, [r.chunk.content for r in results]
+            payload.question,
+            [r.chunk.content for r in results],
+            history=memory_history or None,
         )
         answer = await generator.generate(system, prompt)
         citations = [

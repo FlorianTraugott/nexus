@@ -16,7 +16,8 @@ from tests.fakes import FakeGenerationProvider, ephemeral_store
 
 from app.core.security import create_access_token
 from app.db.base import Base
-from app.db.models import DocumentSourceType, User
+from app.db.models import DocumentSourceType, MessageRole, User
+from app.db.repositories import conversation as conversation_repo
 from app.db.repositories import document as document_repo
 from app.db.session import get_db
 from app.main import app
@@ -131,6 +132,20 @@ async def _seed_user_chunks(env: _Env, contents: list[str]) -> uuid.UUID:
     return user_id
 
 
+async def _seed_conversation(
+    env: _Env, user_id: uuid.UUID, turns: list[tuple[str, str]]
+) -> uuid.UUID:
+    """Create a conversation owned by user_id, seeded with prior (role, content)."""
+    async with env.session_factory() as session:
+        conversation = await conversation_repo.create_conversation(session, user_id)
+        for role, content in turns:
+            await conversation_repo.add_message(
+                session, conversation.id, MessageRole(role), content
+            )
+        await session.commit()
+        return conversation.id
+
+
 def _auth(user_id: uuid.UUID) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
 
@@ -208,6 +223,54 @@ async def test_query_answer_is_grounded_in_cited_chunks(env: _Env) -> None:
     assert "bravo banana" in body["answer"]
     assert "alpha apple" not in body["answer"]
     assert "charlie cherry" not in body["answer"]
+
+
+async def test_query_passes_conversation_history_to_generation(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["bravo banana"])
+    conversation_id = await _seed_conversation(
+        env,
+        user_id,
+        [("user", "tell me about bravo"), ("assistant", "bravo is a fruit")],
+    )
+    # A non-echo generator: rewrite_query returns "find bravo" (which the mapping
+    # embedder matches to the seeded chunk, so retrieval succeeds), and the same
+    # value is the answer. We inspect the recorded generation prompt directly.
+    generator = FakeGenerationProvider(answer="find bravo")
+    app.dependency_overrides[get_generation_provider] = lambda: generator
+
+    response = await env.client.post(
+        QUERY,
+        json={
+            "question": "what about it?",
+            "conversation_id": str(conversation_id),
+            "k": 1,
+        },
+        headers=_auth(user_id),
+    )
+
+    assert response.status_code == 200
+    # rewrite runs first, generation last; the generation call carries the history.
+    gen_system, gen_prompt = generator.calls[-1]
+    assert "Previous conversation:" in gen_prompt
+    assert "user: tell me about bravo" in gen_prompt
+    assert "assistant: bravo is a fruit" in gen_prompt
+    assert "Question: what about it?" in gen_prompt  # the ORIGINAL question
+    assert "never from the conversation" in gen_system  # framing clause present
+
+
+async def test_query_without_conversation_passes_no_history(env: _Env) -> None:
+    # No conversation_id: the generation prompt must be exactly today's, with no
+    # history block and no framing clause, so the eval baselines stay comparable.
+    user_id = await _seed_user_chunks(env, ["bravo banana"])
+
+    response = await env.client.post(
+        QUERY, json={"question": "find bravo", "k": 1}, headers=_auth(user_id)
+    )
+
+    assert response.status_code == 200
+    gen_system, gen_prompt = env.generator.calls[-1]
+    assert "Previous conversation:" not in gen_prompt
+    assert "conversation" not in gen_system
 
 
 async def test_query_rejects_k_above_max(env: _Env) -> None:
