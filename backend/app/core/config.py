@@ -60,6 +60,25 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int = 1024
     ANTHROPIC_API_KEY: str = ""
 
+    # Faithfulness judge. Deliberately a different model family from the
+    # generator (GENERATION_MODEL, gpt-4.1-mini): a judge grading its own
+    # family's output prefers its own phrasing, which inflates the score. The
+    # judge is Gemini for exactly that reason -- a different family from the
+    # OpenAI generator. The vendor changed from Anthropic to Google for billing
+    # reasons; the design intent (cross-family judge) did not change. Pinned to
+    # an exact model string so the faithfulness baseline stays comparable run to
+    # run -- a model swap must be a visible diff, not a silent upgrade under an
+    # alias. Gemini is reached through its OpenAI-compatible endpoint
+    # (JUDGE_BASE_URL) using GEMINI_API_KEY, so no new SDK is needed. The
+    # ANTHROPIC_API_KEY + "anthropic" judge path below is kept as an option.
+    JUDGE_PROVIDER: str = "gemini"
+    JUDGE_MODEL: str = "gemini-2.5-flash"
+    JUDGE_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai"
+    GEMINI_API_KEY: str = ""
+    # Its own budget, not LLM_MAX_TOKENS: a per-claim verdict is far longer than
+    # an answer, and a truncated reply is invalid JSON rather than a short one.
+    JUDGE_MAX_TOKENS: int = 2048
+
     # Web search. Defaults to the offline no-op "null" provider: live search is
     # a billable external call, so Tavily is explicit opt-in (SEARCH_PROVIDER=
     # tavily) and only used when TAVILY_API_KEY is also set.

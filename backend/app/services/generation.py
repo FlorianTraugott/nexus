@@ -49,8 +49,17 @@ class GenerationProvider(Protocol):
 class OpenAIGenerationProvider:
     """Generation backed by OpenAI chat completion models."""
 
-    def __init__(self, api_key: str, model: str, max_tokens: int) -> None:
-        self._client = AsyncOpenAI(api_key=api_key)
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        max_tokens: int,
+        base_url: str | None = None,
+    ) -> None:
+        # base_url=None is the OpenAI default and reproduces today's behaviour for
+        # the generator path; a non-None base_url points this same OpenAI-protocol
+        # client at a compatible endpoint (e.g. the Gemini OpenAI-compat layer).
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
         self._max_tokens = max_tokens
 
