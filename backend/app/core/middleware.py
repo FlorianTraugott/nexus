@@ -45,5 +45,10 @@ def configure_middleware(app: FastAPI) -> None:
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],
+        # Explicit, not "*": the CORS spec forbids the wildcard for credentialed
+        # requests (allow_credentials=True), so a browser rejects the preflight and
+        # never sends the Authorization header. These two cover what every
+        # credentialed POST actually sends (Bearer token + JSON body), including
+        # /query and the SSE /query/stream.
+        allow_headers=["Authorization", "Content-Type"],
     )
