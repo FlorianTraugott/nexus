@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/stores/auth";
@@ -12,9 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Static placeholders for the Part 9 feature surfaces. No UI or backend wiring
-// here beyond what the store already does — that is Part 9 scope.
-const FEATURES = [
+// Feature surfaces on the dashboard. `href` is set once a surface has a route;
+// Chat/Research stay static placeholders until their Part 9 segments land.
+const FEATURES: { title: string; description: string; href?: string }[] = [
   {
     title: "Chat",
     description: "Ask questions grounded in your documents.",
@@ -22,12 +23,13 @@ const FEATURES = [
   {
     title: "Documents",
     description: "Upload and manage your corpus.",
+    href: "/documents",
   },
   {
     title: "Research",
     description: "Run the multi-agent research pipeline.",
   },
-] as const;
+];
 
 function DashboardHeader() {
   const router = useRouter();
@@ -66,14 +68,29 @@ export default function Home() {
             Coming in Part 9.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((feature) => (
-              <Card key={feature.title}>
-                <CardHeader>
-                  <CardTitle>{feature.title}</CardTitle>
-                  <CardDescription>{feature.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
+            {FEATURES.map((feature) => {
+              const card = (
+                <Card
+                  key={feature.title}
+                  className={
+                    feature.href
+                      ? "transition-shadow hover:ring-foreground/20"
+                      : undefined
+                  }
+                >
+                  <CardHeader>
+                    <CardTitle>{feature.title}</CardTitle>
+                    <CardDescription>{feature.description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+              if (!feature.href) return card;
+              return (
+                <Link key={feature.title} href={feature.href} className="block">
+                  {card}
+                </Link>
+              );
+            })}
           </div>
         </main>
       </div>

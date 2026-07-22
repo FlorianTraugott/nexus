@@ -40,3 +40,19 @@ export interface RefreshRequest {
 export interface ApiError {
   detail: string;
 }
+
+/** app/db/models.py :: DocumentSourceType */
+export type DocumentSourceType = "pdf" | "text" | "youtube" | "web";
+
+/** app/db/models.py :: DocumentStatus — pending -> processing -> completed | failed */
+export type DocumentStatus = "pending" | "processing" | "completed" | "failed";
+
+/** app/schemas/document.py :: DocumentRead — GET /documents item, snake_case. */
+export interface DocumentRead {
+  id: string; // uuid.UUID serialised as a string
+  filename: string;
+  source_type: DocumentSourceType;
+  status: DocumentStatus;
+  chunk_count: number;
+  created_at: string; // datetime serialised as an ISO-8601 string
+}
