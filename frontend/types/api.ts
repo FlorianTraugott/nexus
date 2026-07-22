@@ -56,3 +56,69 @@ export interface DocumentRead {
   chunk_count: number;
   created_at: string; // datetime serialised as an ISO-8601 string
 }
+
+/** app/schemas/query.py :: QueryRequest — POST /query and /query/stream body */
+export interface QueryRequest {
+  question: string;
+  k?: number | null;
+  conversation_id?: string | null; // uuid as a string; absent = stateless query
+}
+
+/** app/schemas/query.py :: Citation — Chroma cosine distance: LOWER is more relevant */
+export interface Citation {
+  chunk_id: string; // uuid.UUID serialised as a string
+  document_id: string; // uuid.UUID serialised as a string
+  chunk_index: number;
+  distance: number;
+  content_preview: string;
+}
+
+/** app/schemas/query.py :: QueryResponse — POST /query (sync) */
+export interface QueryResponse {
+  answer: string;
+  citations: Citation[];
+  // Non-null whenever the rewrite step RAN (even if it returned the question
+  // unchanged); null only when it never ran (no conversation_id / first turn).
+  rewritten_question: string | null;
+}
+
+// --- SSE frames for POST /query/stream (app/schemas/query.py) ---
+// Each arrives as one `data: <json>\n\n` frame; `type` is the discriminant.
+// Sequence: metadata -> (abstained | token* done | token* error).
+
+/** app/schemas/query.py :: StreamMetadata — first frame, known before generation */
+export interface StreamMetadata {
+  type: "metadata";
+  citations: Citation[];
+  rewritten_question: string | null;
+}
+
+/** app/schemas/query.py :: StreamToken — one answer delta as it arrives */
+export interface StreamToken {
+  type: "token";
+  text: string;
+}
+
+/** app/schemas/query.py :: StreamDone — terminal frame of a successful stream */
+export interface StreamDone {
+  type: "done";
+}
+
+/** app/schemas/query.py :: StreamAbstained — terminal; fixed answer, no tokens */
+export interface StreamAbstained {
+  type: "abstained";
+  answer: string;
+}
+
+/** app/schemas/query.py :: StreamError — terminal; may arrive after flushed tokens */
+export interface StreamError {
+  type: "error";
+  message: string;
+}
+
+export type StreamEvent =
+  | StreamMetadata
+  | StreamToken
+  | StreamDone
+  | StreamAbstained
+  | StreamError;

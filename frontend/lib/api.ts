@@ -110,6 +110,41 @@ async function performRefresh(): Promise<string> {
   return response.data.access_token;
 }
 
+// The ONE place a refresh is started or joined. Both the axios interceptor and
+// the fetch-based stream client (lib/query-stream.ts) call this, so every
+// concurrent 401 awaits the SAME module-level promise. There must never be a
+// second code path that starts a refresh: with single-use rotating tokens, two
+// parallel refreshes revoke each other and log the user out.
+//
+// The "refresh itself failed with a genuine 401 → session dead" policy lives
+// HERE, on the shared promise, so it has one home and fires ONCE per dead
+// refresh (not once per waiter): clear tokens FIRST, then signal the redirect,
+// then reject every waiter with the typed SessionExpiredError. The .catch runs
+// as part of the promise chain BEFORE any waiter's await resumes, so cleanup
+// strictly precedes every observer. Any other failure (cancelled request,
+// network error, 5xx) rethrows raw — it is NOT an authentication failure and
+// the session stays intact.
+export function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh()
+      .catch((refreshError: unknown) => {
+        if (
+          isAxiosError(refreshError) &&
+          refreshError.response?.status === 401
+        ) {
+          clearTokens();
+          onUnauthorized?.();
+          throw new SessionExpiredError();
+        }
+        throw refreshError;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 // Attach the access token to every outgoing request when we have one.
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getAccessToken();
@@ -149,23 +184,16 @@ api.interceptors.response.use(
 
     try {
       // Join the single in-flight refresh (or start it if none is running).
-      if (!refreshPromise) {
-        refreshPromise = performRefresh().finally(() => {
-          refreshPromise = null;
-        });
-      }
-      const newAccessToken = await refreshPromise;
+      const newAccessToken = await refreshAccessToken();
 
       original.headers.set("Authorization", `Bearer ${newAccessToken}`);
       return api(original);
     } catch (refreshError) {
-      // Only a genuine HTTP 401 from /auth/refresh means the session is truly
-      // dead (the refresh token is revoked or invalid): clear tokens, signal the
-      // app to redirect, and surface the typed SessionExpiredError.
-      if (isAxiosError(refreshError) && refreshError.response?.status === 401) {
-        clearTokens();
-        onUnauthorized?.();
-        return Promise.reject(new SessionExpiredError());
+      // Session-dead handling (clear tokens, signal the redirect) already ran
+      // ON the shared promise inside refreshAccessToken — once per dead
+      // refresh, before any waiter resumed. Here we only route the rejection.
+      if (refreshError instanceof SessionExpiredError) {
+        return Promise.reject(refreshError);
       }
       // A cancelled request (navigation/reload — axios.isCancel / ERR_CANCELED),
       // a network error (no response), or a 5xx is NOT an authentication failure;
