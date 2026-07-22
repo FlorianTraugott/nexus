@@ -3,12 +3,17 @@
 // The documents manager — READ path (9D.1a). Lists the user's corpus with an
 // ingestion-status badge. No polling/upload/delete yet (9D.1b/9D.2/9D.3).
 
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 
 import { useDocuments } from "@/hooks/use-documents";
+import { useUploadDocument } from "@/hooks/use-upload-document";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { mapUploadError } from "@/lib/documents-forms";
 import { cn } from "@/lib/utils";
 import type { DocumentRead, DocumentStatus } from "@/types/api";
 
@@ -48,6 +53,52 @@ function DocumentRow({ doc }: { doc: DocumentRead }) {
         <StatusBadge status={doc.status} />
       </CardContent>
     </Card>
+  );
+}
+
+function UploadControl() {
+  const [file, setFile] = useState<File | null>(null);
+  // Bumped on success to remount the file input, clearing its native value
+  // (ref-free — avoids relying on ref-forwarding through the base-ui Input).
+  const [inputKey, setInputKey] = useState(0);
+  const { mutate, isPending, isError, error, reset } = useUploadDocument();
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!file) return;
+    mutate(file, {
+      onSuccess: () => {
+        setFile(null);
+        setInputKey((k) => k + 1);
+      },
+    });
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <Input
+          key={inputKey}
+          type="file"
+          accept=".pdf,.txt,.text,.md,.markdown"
+          disabled={isPending}
+          onChange={(e) => {
+            setFile(e.target.files?.[0] ?? null);
+            reset(); // drop a stale error when a new file is chosen
+          }}
+          className="max-w-sm"
+        />
+        <Button type="submit" disabled={!file || isPending}>
+          {isPending ? "Uploading…" : "Upload"}
+        </Button>
+      </div>
+      {isError && (
+        <Alert variant="destructive">
+          <AlertTitle>Upload failed</AlertTitle>
+          <AlertDescription>{mapUploadError(error)}</AlertDescription>
+        </Alert>
+      )}
+    </form>
   );
 }
 
@@ -101,6 +152,9 @@ export default function DocumentsPage() {
             ← Workspace
           </Link>
           <h1 className="mt-2 font-heading text-xl font-medium">Documents</h1>
+          <div className="mt-6">
+            <UploadControl />
+          </div>
           <div className="mt-6">
             <DocumentsList />
           </div>
