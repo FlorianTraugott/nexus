@@ -1,0 +1,56 @@
+# Multi-turn conversational golden set. Hand-authored and verified against the
+# corpus with ILIKE checks before labelling — never labelled from what retrieval
+# happened to return, which would be writing the answer key from the student's paper.
+#
+# Each case is an ordered sequence: a standalone opener, then follow-ups that are
+# MEANINGLESS without history. expect_rewrite_contains checks that the rewrite
+# resolved the referent; expect_contains checks retrieval, as in retrieval.yaml.
+#
+# Fixing a label means making it CORRECT, never making it green. A rewrite that
+# runs but leaves a pronoun unresolved is a FAILURE, not a neutral outcome.
+
+- id: conv-csf-functions
+  turns:
+    - question: "What are the six Functions of the CSF Core?"
+      expect_document: NIST.CSWP.29.pdf
+      expect_contains: ["GOVERN", "RECOVER"]
+    - question: "What does the first one establish?"
+      expect_rewrite_contains: ["GOVERN"]
+      expect_document: NIST.CSWP.29.pdf
+      expect_contains: ["Governance activities are critical"]
+  notes: >
+    Positional referent ("the first one"), resolvable only from the prior answer.
+    Verified live in 9B.2: the rewrite produced "What does the GOVERN function
+    establish in the CSF Core?" and retrieval returned the governance chunks.
+
+- id: conv-tiers
+  turns:
+    - question: "What are the four CSF Tiers called?"
+      expect_document: NIST.CSWP.29.pdf
+      expect_contains: ["Adaptive", "Risk Informed"]
+    - question: "What does the highest one describe?"
+      expect_rewrite_contains: ["Adaptive", "Tier 4"]
+      expect_document: NIST.CSWP.29.pdf
+      expect_contains: ["Adaptive"]
+  notes: >
+    Positional referent. Replaced an earlier "which is the most mature?" draft —
+    that required inferring a ranking the documents may never state, so it would
+    have tested inference rather than referent resolution.
+    expect_rewrite_contains lists BOTH acceptable forms: the rewrite may name the
+    tier ("Adaptive") or its number ("Tier 4"); either resolves the referent.
+
+- id: conv-risk-register
+  turns:
+    - question: "What is a cybersecurity risk register?"
+      expect_document: NIST.IR.8286r1.pdf
+      expect_contains: ["risk register"]
+    - question: "How is it used in enterprise risk management?"
+      expect_rewrite_contains: ["risk register"]
+      expect_document: NIST.IR.8286r1.pdf
+      expect_contains: ["risk register"]
+  notes: >
+    HARD. Pronoun referent ("it"). The ERM/CSF confusable already fails doc-top1 in
+    the single-turn set, so a document-level miss here is expected and diagnostic,
+    not a broken label. Turn 2's expect_contains deliberately stays "risk register"
+    rather than "enterprise risk" — the latter appears in CSWP 29 chunk 21 as well,
+    so it would pass on the wrong document.

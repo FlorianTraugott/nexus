@@ -1,0 +1,266 @@
+{
+  "generated_at": "2026-07-22T10:53:54.507558+00:00",
+  "k": 5,
+  "rag_max_distance": 0.5,
+  "memory_history_turns": 6,
+  "rewrite_history_turns": 3,
+  "judge_provider": "gemini",
+  "judge_model": "gemini-3.1-flash-lite",
+  "generator_model": "gpt-4.1-mini",
+  "n_turns": 6,
+  "n_openers": 3,
+  "n_follow_ups": 3,
+  "rewrite": {
+    "n_follow_ups": 3,
+    "changed_rate": 1.0,
+    "n_labelled": 3,
+    "expect_hit_rate": 1.0
+  },
+  "retrieval": {
+    "opener_hit_rate": 1.0,
+    "follow_up_hit_rate": 1.0,
+    "opener_doc_top1": 1.0,
+    "follow_up_doc_top1": 1.0,
+    "opener_abstained": 0,
+    "follow_up_abstained": 1
+  },
+  "faithfulness": {
+    "verdict_rule": "faithful_iff_zero_unsupported",
+    "mean_faithfulness": 0.9714285714285713,
+    "n_judged": 5,
+    "n_faithful": 4,
+    "n_unfaithful": 1,
+    "n_no_claims": 0,
+    "n_abstained": 1,
+    "n_judge_errors": 0
+  },
+  "per_turn": [
+    {
+      "case_id": "conv-csf-functions",
+      "turn_index": 0,
+      "is_follow_up": false,
+      "question": "What are the six Functions of the CSF Core?",
+      "rewritten_question": null,
+      "rewrite_changed": false,
+      "rewrite_expect_hit": null,
+      "abstained": false,
+      "retrieval_hit": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "faith_status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER [3].",
+      "claims": [
+        {
+          "claim": "The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER.",
+          "supported": true,
+          "reason": "Passage 3 explicitly lists these six Functions as the CSF Core Functions."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "case_id": "conv-csf-functions",
+      "turn_index": 1,
+      "is_follow_up": true,
+      "question": "What does the first one establish?",
+      "rewritten_question": "What does the GOVERN function of the CSF Core establish?",
+      "rewrite_changed": true,
+      "rewrite_expect_hit": true,
+      "abstained": false,
+      "retrieval_hit": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "faith_status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 3,
+      "n_unsupported": 0,
+      "answer": "The first Function of the CSF Core, GOVERN, establishes the organization\u2019s cybersecurity risk management strategy, expectations, and policy. It also involves establishing, communicating, and monitoring these elements [1].",
+      "claims": [
+        {
+          "claim": "The first Function of the CSF Core is GOVERN.",
+          "supported": true,
+          "reason": "Passage 1 lists GOVERN as the first Function in the CSF Core."
+        },
+        {
+          "claim": "The GOVERN function establishes the organization\u2019s cybersecurity risk management strategy, expectations, and policy.",
+          "supported": true,
+          "reason": "Passage 1 explicitly states that under GOVERN, strategy, expectations, and policy are established."
+        },
+        {
+          "claim": "The GOVERN function involves establishing, communicating, and monitoring cybersecurity risk management strategy, expectations, and policy.",
+          "supported": true,
+          "reason": "Passage 1 states that strategy, expectations, and policy are established, communicated, and monitored under the GOVERN Function."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "case_id": "conv-tiers",
+      "turn_index": 0,
+      "is_follow_up": false,
+      "question": "What are the four CSF Tiers called?",
+      "rewritten_question": null,
+      "rewrite_changed": false,
+      "rewrite_expect_hit": null,
+      "abstained": false,
+      "retrieval_hit": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "faith_status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "The four CSF Tiers are called Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4). [3]",
+      "claims": [
+        {
+          "claim": "The four CSF Tiers are called Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4).",
+          "supported": true,
+          "reason": "Passage 3 explicitly lists these four tiers and their corresponding numbers."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "case_id": "conv-tiers",
+      "turn_index": 1,
+      "is_follow_up": true,
+      "question": "What does the highest one describe?",
+      "rewritten_question": "What does the highest CSF Tier, Adaptive (Tier 4), describe?",
+      "rewrite_changed": true,
+      "rewrite_expect_hit": true,
+      "abstained": true,
+      "retrieval_hit": null,
+      "doc_top1": null,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "faith_status": "abstained",
+      "faithful": null,
+      "score": null,
+      "n_claims": 0,
+      "n_unsupported": 0,
+      "answer": null,
+      "claims": [],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "case_id": "conv-risk-register",
+      "turn_index": 0,
+      "is_follow_up": false,
+      "question": "What is a cybersecurity risk register?",
+      "rewritten_question": null,
+      "rewrite_changed": false,
+      "rewrite_expect_hit": null,
+      "abstained": false,
+      "retrieval_hit": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "faith_status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 6,
+      "n_unsupported": 0,
+      "answer": "A cybersecurity risk register is defined as a repository or record of information about identified cybersecurity risks. It serves as a formal communication vehicle for sharing, coordinating, managing, and tracking cybersecurity risk activities within an organization. It includes data understood about risks over time and can be used to document discipline-specific risks, such as cybersecurity risks. The register may contain various risk metadata fields detailing risks, including current risk assessment results and residual risk after risk response. Cybersecurity risk registers are key tools for managing cybersecurity risks, ensuring seamless communication with senior decision-makers, and are often integrated into broader enterprise risk management methodologies. Over time, individual cybersecurity risk registers are aggregated, normalized, and prioritized into enterprise risk profiles to aid decision-making [1], [3], [4], [5].",
+      "claims": [
+        {
+          "claim": "A cybersecurity risk register is defined as a repository or record of information about identified cybersecurity risks.",
+          "supported": true,
+          "reason": "Passages 1 and 3 define a risk register as a repository of risk information and a record of information about identified risks."
+        },
+        {
+          "claim": "It serves as a formal communication vehicle for sharing, coordinating, managing, and tracking cybersecurity risk activities within an organization.",
+          "supported": true,
+          "reason": "Passages 1, 3, and 5 confirm the risk register is a formal communication vehicle for sharing/coordinating risk activities and for tracking cybersecurity risks."
+        },
+        {
+          "claim": "It includes data understood about risks over time and can be used to document discipline-specific risks, such as cybersecurity risks.",
+          "supported": true,
+          "reason": "Passages 1 and 3 confirm it includes data understood over time and is used to record discipline-specific risks like cybersecurity."
+        },
+        {
+          "claim": "The register may contain various risk metadata fields detailing risks, including current risk assessment results and residual risk after risk response.",
+          "supported": true,
+          "reason": "Passages 2 and 4 support that the register contains risk metadata, current risk assessment results, and residual risk."
+        },
+        {
+          "claim": "Cybersecurity risk registers are key tools for managing cybersecurity risks, ensuring seamless communication with senior decision-makers, and are often integrated into broader enterprise risk management methodologies.",
+          "supported": true,
+          "reason": "Passages 1 and 3 describe them as key aspects for managing risks and ensuring seamless communication with senior decision-makers, and passage 3 mentions integrating them into risk management methodologies."
+        },
+        {
+          "claim": "Over time, individual cybersecurity risk registers are aggregated, normalized, and prioritized into enterprise risk profiles to aid decision-making.",
+          "supported": true,
+          "reason": "Passages 1 and 5 describe how registers are aggregated, normalized, and prioritized into risk profiles."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "case_id": "conv-risk-register",
+      "turn_index": 1,
+      "is_follow_up": true,
+      "question": "How is it used in enterprise risk management?",
+      "rewritten_question": "How is a cybersecurity risk register used in enterprise risk management?",
+      "rewrite_changed": true,
+      "rewrite_expect_hit": true,
+      "abstained": false,
+      "retrieval_hit": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "faith_status": "scored",
+      "faithful": false,
+      "score": 0.8571428571428571,
+      "n_claims": 7,
+      "n_unsupported": 1,
+      "answer": "A cybersecurity risk register is used in enterprise risk management (ERM) as a formal communication vehicle for sharing, coordinating, managing, and tracking cybersecurity risk activities within an organization. It documents discipline-specific risks like cybersecurity in a record of identified risks, helping to ensure seamless communication with senior decision-makers [2], [3]. The register contains data about risks over time, including current risk assessments and residual risks after risk responses [2].\n\nIn ERM, individual cybersecurity risk registers are aggregated, normalized, and prioritized into enterprise risk profiles, which provide a holistic, prioritized inventory of the most significant risks at higher levels of the organization [2], [5]. This aggregation supports enterprise risk oversight by executive risk committees and other stakeholders, helping them identify the most relevant risks and inform decisions on risk responses and planned activities [1], [5]. The use of cybersecurity risk registers integrates cybersecurity considerations with overall enterprise risk management methodologies, aiding decision-making aligned with the enterprise's mission and business objectives [3], [5].\n\nThus, the cybersecurity risk register acts as a foundational tool feeding into the enterprise risk register, enabling a portfolio view of risks and supporting informed decision-making at the enterprise level [1], [5].",
+      "claims": [
+        {
+          "claim": "A cybersecurity risk register is used in enterprise risk management (ERM) as a formal communication vehicle for sharing, coordinating, managing, and tracking cybersecurity risk activities within an organization.",
+          "supported": true,
+          "reason": "Passage 2 states the risk register provides a formal communication vehicle for sharing and coordinating cybersecurity risk activities, and Passage 3 notes they are a key aspect of managing such risks."
+        },
+        {
+          "claim": "It documents discipline-specific risks like cybersecurity in a record of identified risks, helping to ensure seamless communication with senior decision-makers.",
+          "supported": true,
+          "reason": "Passage 3 explicitly mentions recording discipline-specific risks and that their use ensures seamless communication with senior decision-makers."
+        },
+        {
+          "claim": "The register contains data about risks over time, including current risk assessments and residual risks after risk responses.",
+          "supported": false,
+          "reason": "While Passage 2 defines the register as a repository of data about risks over time, the context does not explicitly mention that it contains current risk assessments or residual risks after risk responses."
+        },
+        {
+          "claim": "In ERM, individual cybersecurity risk registers are aggregated, normalized, and prioritized into enterprise risk profiles, which provide a holistic, prioritized inventory of the most significant risks at higher levels of the organization.",
+          "supported": true,
+          "reason": "Passage 2 and Passage 5 confirm that registers are aggregated, normalized, and prioritized into risk profiles defined as prioritized inventories of significant risks."
+        },
+        {
+          "claim": "This aggregation supports enterprise risk oversight by executive risk committees and other stakeholders, helping them identify the most relevant risks and inform decisions on risk responses and planned activities.",
+          "supported": true,
+          "reason": "Passage 1 explains that the register provides input for oversight roles, such as executive risk committees, and helps identify relevant risks to inform risk decisions and planned activities."
+        },
+        {
+          "claim": "The use of cybersecurity risk registers integrates cybersecurity considerations with overall enterprise risk management methodologies, aiding decision-making aligned with the enterprise's mission and business objectives.",
+          "supported": true,
+          "reason": "Passage 3 states that organizations are urged to integrate these registers into their risk management methodology, and Passage 5 states that considering cybersecurity risks with regard to enterprise objectives supports leadership decisions."
+        },
+        {
+          "claim": "The cybersecurity risk register acts as a foundational tool feeding into the enterprise risk register, enabling a portfolio view of risks and supporting informed decision-making at the enterprise level.",
+          "supported": true,
+          "reason": "Passage 5 confirms that normalizing and aggregating the register supports a portfolio view and informs enterprise risk managers."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    }
+  ]
+}
