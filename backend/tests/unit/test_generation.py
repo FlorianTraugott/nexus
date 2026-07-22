@@ -138,6 +138,51 @@ async def test_openai_provider_json_mode_toggles_response_format(monkeypatch) ->
     assert "response_format" not in captured
 
 
+async def test_openai_provider_generate_stream_yields_content_deltas(
+    monkeypatch,
+) -> None:
+    captured: dict = {}
+
+    async def fake_create(**kwargs):
+        captured.update(kwargs)
+
+        async def chunks():
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content="Hel"))]
+            )
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content="lo"))]
+            )
+            # delta.content None (role/finish frame) and empty choices are skipped.
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+            )
+            yield SimpleNamespace(choices=[])
+
+        return chunks()
+
+    provider = OpenAIGenerationProvider(api_key="x", model="m", max_tokens=64)
+    monkeypatch.setattr(provider._client.chat.completions, "create", fake_create)
+
+    out = [delta async for delta in provider.generate_stream("sys", "prompt")]
+
+    assert out == ["Hel", "lo"]
+    assert captured["stream"] is True
+    assert captured["model"] == "m"
+    assert captured["max_tokens"] == 64
+    assert "response_format" not in captured  # streaming never sets json mode
+    assert captured["messages"] == [
+        {"role": "system", "content": "sys"},
+        {"role": "user", "content": "prompt"},
+    ]
+
+
+def test_claude_provider_generate_stream_raises_not_implemented() -> None:
+    provider = ClaudeGenerationProvider(api_key="x", model="m", max_tokens=64)
+    with pytest.raises(NotImplementedError, match="does not implement streaming"):
+        provider.generate_stream("sys", "prompt")
+
+
 def test_get_generation_provider_rejects_unknown(monkeypatch) -> None:
     from app.core import config
 

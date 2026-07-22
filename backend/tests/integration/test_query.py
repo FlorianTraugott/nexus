@@ -1,5 +1,6 @@
 """Tests for the query endpoint (retrieval + generation), kept offline."""
 
+import json
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -26,6 +27,18 @@ from app.services.generation import get_generation_provider
 from app.services.vector_store import VectorStore, get_vector_store
 
 QUERY = "/api/v1/query"
+QUERY_STREAM = "/api/v1/query/stream"
+
+
+def _parse_sse(body: str) -> list[dict]:
+    """Parse an SSE body into the ordered list of its `data:` JSON events."""
+    events: list[dict] = []
+    for block in body.strip().split("\n\n"):
+        line = block.strip()
+        if line.startswith("data:"):
+            events.append(json.loads(line[len("data:") :].strip()))
+    return events
+
 
 # Orthogonal vectors so cosine ordering is unambiguous.
 _VECTORS = {
@@ -281,3 +294,145 @@ async def test_query_rejects_k_above_max(env: _Env) -> None:
     )
 
     assert response.status_code == 422
+
+
+async def test_stream_emits_metadata_then_tokens_then_done(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["bravo banana"])
+
+    response = await env.client.post(
+        QUERY_STREAM, json={"question": "find bravo", "k": 1}, headers=_auth(user_id)
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    events = _parse_sse(response.text)
+
+    # SEQUENCE, not a single body: metadata first, >=1 token, done last.
+    assert events[0]["type"] == "metadata"
+    assert events[-1]["type"] == "done"
+    types = [e["type"] for e in events]
+    assert types.count("metadata") == 1
+    assert types.count("done") == 1
+    token_events = [e for e in events if e["type"] == "token"]
+    assert len(token_events) >= 1
+    assert all(t["type"] == "token" for t in events[1:-1])  # only tokens between
+
+    # Metadata carries the citation known before generation.
+    previews = [c["content_preview"] for c in events[0]["citations"]]
+    assert previews == ["bravo banana"]
+
+    # Tokens reassemble to the full answer (echo → the built prompt with the chunk).
+    assembled = "".join(t["text"] for t in token_events)
+    assert "bravo banana" in assembled
+    # The streaming generator was used, not the buffered generate().
+    assert len(env.generator.stream_calls) == 1
+    assert env.generator.calls == []
+
+
+async def test_stream_abstains_with_no_tokens_and_no_generator_call(env: _Env) -> None:
+    # Orthogonal chunk (distance 1.0 > 0.5 gate): abstain, exactly like sync /query.
+    user_id = await _seed_user_chunks(env, ["alpha apple"])
+
+    response = await env.client.post(
+        QUERY_STREAM, json={"question": "find bravo", "k": 5}, headers=_auth(user_id)
+    )
+
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    assert [e["type"] for e in events] == ["metadata", "abstained"]
+    assert events[0]["citations"] == []
+    assert "could not find anything relevant" in events[1]["answer"].lower()
+    # No token frames, and generate_stream was never invoked.
+    assert env.generator.stream_calls == []
+
+
+async def test_stream_persists_turn_on_completion(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["bravo banana"])
+    conversation_id = await _seed_conversation(env, user_id, [])  # empty: no rewrite
+
+    response = await env.client.post(
+        QUERY_STREAM,
+        json={"question": "find bravo", "conversation_id": str(conversation_id)},
+        headers=_auth(user_id),
+    )
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    assembled = "".join(e["text"] for e in events if e["type"] == "token")
+
+    async with env.session_factory() as session:
+        messages = await conversation_repo.list_messages(session, conversation_id)
+    assert [m.role.value for m in messages] == ["user", "assistant"]
+    assert messages[0].content == "find bravo"  # the ORIGINAL question
+    assert messages[1].content == assembled  # the assembled streamed answer
+
+
+async def test_stream_abstention_persists_the_turn(env: _Env) -> None:
+    # An abstained stream is still a real turn — persisted exactly like sync /query.
+    user_id = await _seed_user_chunks(env, ["alpha apple"])
+    conversation_id = await _seed_conversation(env, user_id, [])
+
+    response = await env.client.post(
+        QUERY_STREAM,
+        json={"question": "find bravo", "conversation_id": str(conversation_id)},
+        headers=_auth(user_id),
+    )
+    assert response.status_code == 200
+
+    async with env.session_factory() as session:
+        messages = await conversation_repo.list_messages(session, conversation_id)
+    assert [m.role.value for m in messages] == ["user", "assistant"]
+    assert "could not find anything relevant" in messages[1].content.lower()
+
+
+async def test_stream_error_frame_and_no_persist(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["bravo banana"])
+    conversation_id = await _seed_conversation(env, user_id, [])
+    # A generator that fails mid-stream (after its first delta).
+    boom = FakeGenerationProvider(echo=True, stream_error=RuntimeError("boom"))
+    app.dependency_overrides[get_generation_provider] = lambda: boom
+
+    response = await env.client.post(
+        QUERY_STREAM,
+        json={"question": "find bravo", "conversation_id": str(conversation_id)},
+        headers=_auth(user_id),
+    )
+
+    assert response.status_code == 200  # headers already flushed before the failure
+    events = _parse_sse(response.text)
+    types = [e["type"] for e in events]
+    assert types[0] == "metadata"
+    assert types[-1] == "error"
+    assert "done" not in types
+    # Persist NOTHING on a mid-stream error — a half-turn would corrupt history.
+    async with env.session_factory() as session:
+        messages = await conversation_repo.list_messages(session, conversation_id)
+    assert messages == []
+
+
+async def test_stream_requires_authentication(env: _Env) -> None:
+    response = await env.client.post(QUERY_STREAM, json={"question": "find bravo"})
+    assert response.status_code in (401, 403)
+
+
+async def test_stream_rejects_k_above_max_before_streaming(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["alpha apple"])
+
+    response = await env.client.post(
+        QUERY_STREAM,
+        json={"question": "find bravo", "k": 9999},
+        headers=_auth(user_id),
+    )
+    # A real HTTP error, not a 200 SSE body carrying the failure.
+    assert response.status_code == 422
+    assert not response.headers["content-type"].startswith("text/event-stream")
+
+
+async def test_stream_unknown_conversation_404_before_streaming(env: _Env) -> None:
+    user_id = await _seed_user_chunks(env, ["alpha apple"])
+
+    response = await env.client.post(
+        QUERY_STREAM,
+        json={"question": "find bravo", "conversation_id": str(uuid.uuid4())},
+        headers=_auth(user_id),
+    )
+    assert response.status_code == 404

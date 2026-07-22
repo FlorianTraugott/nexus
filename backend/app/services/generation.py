@@ -6,6 +6,7 @@ without touching them. Prompt assembly lives in build_prompt — a pure
 function, so the grounding rules can be tested without calling any model.
 """
 
+from collections.abc import AsyncIterator
 from functools import lru_cache
 from typing import Protocol
 
@@ -81,6 +82,16 @@ class GenerationProvider(Protocol):
         """Return the model's answer; json_mode=True asks for a bare JSON object."""
         ...
 
+    def generate_stream(self, system: str, prompt: str) -> AsyncIterator[str]:
+        """Yield the answer as text deltas as they arrive from the model.
+
+        Additive sibling to generate(); the /query/stream endpoint uses it while
+        every existing caller keeps using generate() unchanged. A provider that
+        cannot stream may raise NotImplementedError (only OpenAI needs it now).
+        No json_mode: streaming serves the free-text answer path only.
+        """
+        ...
+
 
 class OpenAIGenerationProvider:
     """Generation backed by OpenAI chat completion models."""
@@ -124,6 +135,28 @@ class OpenAIGenerationProvider:
             )
         return response.choices[0].message.content or ""
 
+    async def generate_stream(self, system: str, prompt: str) -> AsyncIterator[str]:
+        # Mirrors generate()'s call exactly (same model/max_tokens/messages) but
+        # with stream=True. json_mode is intentionally absent: streaming serves the
+        # free-text /query answer, never the structured agents. A chunk's delta is
+        # None on the role/opening/finish frames, so guard before yielding.
+        messages: list[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ]
+        stream = await self._client.chat.completions.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=messages,
+            stream=True,
+        )
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
+
 
 class ClaudeGenerationProvider:
     """Generation backed by Anthropic's Claude models."""
@@ -147,6 +180,14 @@ class ClaudeGenerationProvider:
         )
         return "".join(
             block.text for block in response.content if isinstance(block, TextBlock)
+        )
+
+    def generate_stream(self, system: str, prompt: str) -> AsyncIterator[str]:
+        # The default generator is OpenAI; Claude streaming is not wired up. Raise
+        # on call (a plain def, not an async generator) so the omission is loud
+        # rather than a silently empty stream.
+        raise NotImplementedError(
+            "ClaudeGenerationProvider does not implement streaming; use OpenAI"
         )
 
 

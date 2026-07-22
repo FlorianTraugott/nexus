@@ -1,6 +1,7 @@
 """Query schemas: the question in, the grounded answer + citations out."""
 
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -37,3 +38,44 @@ class QueryResponse(BaseModel):
     # question (it has both strings); that display concern is recoverable, the
     # did-it-run signal is not once dropped.
     rewritten_question: str | None = None
+
+
+# --- Streaming (SSE) events for POST /query/stream ---
+# Each is emitted as one `data: <json>\n\n` frame. `type` is a discriminant so the
+# client can switch on it; the sequence is metadata -> (abstained | token* done).
+# A terminal `error` may replace `done` if the model stream fails mid-flight.
+
+
+class StreamMetadata(BaseModel):
+    """First frame: citations + rewritten_question, known before generation."""
+
+    type: Literal["metadata"] = "metadata"
+    citations: list[Citation]
+    rewritten_question: str | None = None
+
+
+class StreamToken(BaseModel):
+    """One answer delta as it arrives from the model."""
+
+    type: Literal["token"] = "token"
+    text: str
+
+
+class StreamDone(BaseModel):
+    """Terminal frame of a successful streamed answer."""
+
+    type: Literal["done"] = "done"
+
+
+class StreamAbstained(BaseModel):
+    """Terminal frame when the gate abstained: the fixed answer, no tokens."""
+
+    type: Literal["abstained"] = "abstained"
+    answer: str
+
+
+class StreamError(BaseModel):
+    """Terminal frame when the model stream failed after tokens may have flushed."""
+
+    type: Literal["error"] = "error"
+    message: str

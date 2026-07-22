@@ -1,6 +1,7 @@
 """Test doubles for the RAG providers, so tests stay offline."""
 
 import uuid
+from collections.abc import AsyncIterator
 
 import chromadb
 
@@ -60,13 +61,25 @@ class FakeGenerationProvider:
     the answer is grounded only in the chunks build_prompt was handed.
     """
 
-    def __init__(self, answer: str = "fake answer", *, echo: bool = False) -> None:
+    def __init__(
+        self,
+        answer: str = "fake answer",
+        *,
+        echo: bool = False,
+        stream_error: Exception | None = None,
+    ) -> None:
         self.answer = answer
         self.echo = echo
+        # When set, generate_stream raises it after the first delta, exercising the
+        # endpoint's mid-stream error frame + no-persist path.
+        self.stream_error = stream_error
         self.calls: list[tuple[str, str]] = []
         # Records json_mode per call so tests can assert the structured agents
         # request JSON mode while the /query path does not.
         self.json_modes: list[bool] = []
+        # Records generate_stream invocations separately from generate, so a test
+        # can assert an abstained stream never called the streaming generator.
+        self.stream_calls: list[tuple[str, str]] = []
 
     async def generate(
         self, system: str, prompt: str, *, json_mode: bool = False
@@ -74,6 +87,17 @@ class FakeGenerationProvider:
         self.calls.append((system, prompt))
         self.json_modes.append(json_mode)
         return prompt if self.echo else self.answer
+
+    async def generate_stream(self, system: str, prompt: str) -> AsyncIterator[str]:
+        # Emit the same text generate() would, in fixed-size chunks so a test sees
+        # multiple token frames that reassemble to the whole answer.
+        self.stream_calls.append((system, prompt))
+        text = prompt if self.echo else self.answer
+        chunk = 5
+        for i in range(0, len(text), chunk):
+            yield text[i : i + chunk]
+            if self.stream_error is not None:
+                raise self.stream_error
 
 
 class FakeSearchProvider:
