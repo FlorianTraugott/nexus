@@ -38,3 +38,13 @@ export async function uploadDocument(file: File): Promise<DocumentRead> {
   });
   return data;
 }
+
+/**
+ * DELETE /documents/{id} -> 204 (no body). A 404 REJECTS like any other status —
+ * this stays a truthful mirror of the server. The "already gone" policy (treat a
+ * 404 as effectively-done) lives in the mutation's onError, not here, so a 404
+ * from a wrong id / bug is never laundered into a success.
+ */
+export async function deleteDocument(id: string): Promise<void> {
+  await api.delete(`${DOCUMENTS}/${id}`);
+}

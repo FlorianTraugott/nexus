@@ -5,15 +5,30 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { Trash2 } from "lucide-react";
 
 import { useDocuments } from "@/hooks/use-documents";
 import { useUploadDocument } from "@/hooks/use-upload-document";
+import { useDeleteDocument } from "@/hooks/use-delete-document";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { mapUploadError } from "@/lib/documents-forms";
+import { mapDeleteError, mapUploadError } from "@/lib/documents-forms";
 import { cn } from "@/lib/utils";
 import type { DocumentRead, DocumentStatus } from "@/types/api";
 
@@ -40,6 +55,76 @@ function StatusBadge({ status }: { status: DocumentStatus }) {
   );
 }
 
+function DeleteControl({ doc }: { doc: DocumentRead }) {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { mutate, isPending, isError, error, reset } = useDeleteDocument();
+
+  function onConfirm() {
+    mutate(doc.id, {
+      onSuccess: () => setOpen(false),
+      onError: (err) => {
+        // The 404 policy, in ONE place. A 404 means the doc is already gone
+        // (a concurrent delete, or a stale tab): reconcile the list so the row
+        // drops, and close — no scary alert, since "gone" was the goal. Any
+        // other error leaves the dialog open with the mapped message below.
+        if (isAxiosError(err) && err.response?.status === 404) {
+          queryClient.invalidateQueries({ queryKey: ["documents"] });
+          setOpen(false);
+        }
+      },
+    });
+  }
+
+  return (
+    <AlertDialog
+      open={open}
+      // reset() on open clears a stale error/pending from a prior attempt so the
+      // dialog reopens clean.
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) reset();
+      }}
+    >
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Delete ${doc.filename}`}
+          />
+        }
+      >
+        <Trash2 className="size-4" />
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete “{doc.filename}”?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently removes the document and everything indexed from it.
+            This can’t be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {isError && (
+          <Alert variant="destructive">
+            <AlertDescription>{mapDeleteError(error)}</AlertDescription>
+          </Alert>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={isPending}
+            onClick={onConfirm}
+          >
+            {isPending ? "Deleting…" : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function DocumentRow({ doc }: { doc: DocumentRead }) {
   return (
     <Card>
@@ -50,7 +135,10 @@ function DocumentRow({ doc }: { doc: DocumentRead }) {
             {doc.chunk_count} chunks · {new Date(doc.created_at).toLocaleString()}
           </p>
         </div>
-        <StatusBadge status={doc.status} />
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge status={doc.status} />
+          <DeleteControl doc={doc} />
+        </div>
       </CardContent>
     </Card>
   );

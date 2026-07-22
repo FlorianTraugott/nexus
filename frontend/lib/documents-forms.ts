@@ -28,3 +28,13 @@ export function mapUploadError(err: unknown): string {
   }
   return "Upload failed. Please try again.";
 }
+
+// Delete errors. 404 is NOT handled here — the mutation's onError treats it as
+// "already gone" (invalidate + close), so it never reaches this copy. This maps
+// the errors that genuinely leave the doc undeleted (network, 5xx, …).
+export function mapDeleteError(err: unknown): string {
+  if (err instanceof RateLimitError) {
+    return "Too many attempts. Please wait a minute.";
+  }
+  return "Couldn't delete the document. Please try again.";
+}
