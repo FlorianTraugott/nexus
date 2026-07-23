@@ -32,10 +32,16 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
 
 
 def _snap_to_boundary(text: str, start: int, end: int) -> int:
-    """Move the cut to the last paragraph/sentence/word break in the window."""
+    """Move the cut to the last paragraph/sentence/word break in the window.
+
+    Only accept a break in the latter half of the window. Snapping to an early
+    break would leave `end - overlap` at or behind `start`, collapsing the step
+    to one character and exploding the chunk count on real-world text.
+    """
     window = text[start:end]
+    midpoint = len(window) // 2
     for separator in ("\n\n", "\n", ". ", " "):
         index = window.rfind(separator)
-        if index != -1:
+        if index >= midpoint:
             return start + index + len(separator)
     return end

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api import health
-from app.api.v1 import auth, documents, query, research
+from app.api.v1 import auth, conversations, documents, query, research, vision
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import configure_middleware
@@ -34,9 +34,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(conversations.router, prefix="/api/v1")
     app.include_router(documents.router, prefix="/api/v1")
     app.include_router(query.router, prefix="/api/v1")
     app.include_router(research.router, prefix="/api/v1")
+    app.include_router(vision.router, prefix="/api/v1")
     configure_middleware(app)
     return app
 

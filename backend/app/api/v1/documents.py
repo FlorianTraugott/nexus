@@ -24,7 +24,11 @@ from app.db.session import get_db
 from app.schemas.document import DocumentRead
 from app.services import storage
 from app.services.ingestion import ingest_document
-from app.services.vector_store import VectorStore, get_vector_store
+from app.services.vector_store import (
+    VectorStore,
+    get_image_vector_store,
+    get_vector_store,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -114,6 +118,7 @@ async def delete_document(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
     store: Annotated[VectorStore, Depends(get_vector_store)],
+    image_store: Annotated[VectorStore, Depends(get_image_vector_store)],
 ) -> None:
     document = await document_repo.get_user_document(db, document_id, current_user.id)
     if document is None:
@@ -124,6 +129,8 @@ async def delete_document(
     await document_repo.delete_document(db, document)
     await db.commit()
     # Vectors and files are cleaned up after the row is gone; an orphaned row
-    # would be worse than an orphaned vector or file.
+    # would be worse than an orphaned vector or file. Image vectors live in their
+    # own collection, so they need a second delete or they poison future top-k.
     await asyncio.to_thread(store.delete_by_document, document_id)
+    await asyncio.to_thread(image_store.delete_by_document, document_id)
     storage.delete_document_files(document_id, filename)

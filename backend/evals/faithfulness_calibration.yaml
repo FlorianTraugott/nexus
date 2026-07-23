@@ -1,0 +1,58 @@
+# Judge calibration set -- hand-labelled, small, and the gate on trusting the
+# judge at all. The judge's aggregate faithfulness numbers mean nothing until we
+# know the judge itself agrees with a human on cases where we know the answer.
+#
+# human_faithful is the ground truth: true = every factual claim in `answer` is
+# supported by `context`; false = at least one claim is not.
+#
+# Label these BY HAND against the context as written. Never generate the labels
+# with an LLM -- an LLM-labelled set measures agreement between two models, not
+# correctness. If the judge disagrees with a label, decide which is actually
+# right; fix a wrong label to make it CORRECT, never to make it green.
+#
+# Keep `context` here self-contained -- these are fixtures, not live retrieval,
+# so calibration does not depend on the corpus or the eval user.
+#
+# Entries 1-3 are real /query output against the eval corpus, hand-verified.
+# Entries 4-5 are deliberate failures: 4 contradicts the context, 5 adds claims
+# that are true in the world but absent from it. Both reuse entry 1's context
+# via a YAML anchor so only the answer differs.
+
+- id: cal-faithful-1
+  answer: 'The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER [3].'
+  context: &csf_core_context
+    - 'lement the CSF ............................................................9 5. Improving Cybersecurity Risk Communication and Integration ...................................................... 10 Appendix A. CSF Core ....................................................................................................................... 15 Appendix B. CSF Tiers ....................................................................................................................... 24 Appendix C. Glossary ....................................................................................................................... 26 List of Figures Fig. 1. CSF Core structure ....................................................................................................................3 Fig. 2. CSF Functions ...........................................................................................................................5'
+    - '• Section 5 discusses how an organization can integrate the CSF with other risk management programs. • Appendix A is the CSF Core. • Appendix B contains a notional illustration of the CSF Tiers. • Appendix C is a glossary of CSF terminology. NIST CSWP 29 The NIST Cybersecurity Framework (CSF) 2.0 February 26, 2024 3 2. Introduction to the CSF Core Appendix A is the CSF Core — a set of cybersecurity outcomes arranged by Function, then Category, and finally Subcategory, as depicted in Fig. 1. These outcomes are not a checklist of actions to perform; specific actions taken to achieve an outcome will vary by organization and use case, as will the individual responsible for those actions. Additionally, the order and size of Functions, Categories, and Subcategories in the Core does not imply the sequence or importance of achieving them. The structure of the Core is intended to resonate most with'
+    - 'the order and size of Functions, Categories, and Subcategories in the Core does not imply the sequence or importance of achieving them. The structure of the Core is intended to resonate most with those charged with operationalizing risk management within an organization. Fig. 1. CSF Core structure The CSF Core Functions — GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER — organize cybersecurity outcomes at their highest level. • GOVERN (GV) — The organization''s cybersecurity risk management strategy, expectations, and policy are established, communicated, and monitored. The GOVERN Function provides outcomes to inform what an organization may do to achieve and prioritize the outcomes of the other five Functions in the context of its mission and stakeholder expectations. Governance activities are critical for incorporating cybersecurity into an organization''s broader enterprise risk management (ERM)'
+  human_faithful: true
+  note: 'Real /query output. Chunk 3 lists all six Functions verbatim.'
+
+- id: cal-faithful-2
+  answer: 'The four CSF Tiers are called: Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4) [3].'
+  context:
+    - 'lement the CSF ............................................................9 5. Improving Cybersecurity Risk Communication and Integration ...................................................... 10 Appendix A. CSF Core ....................................................................................................................... 15 Appendix B. CSF Tiers ....................................................................................................................... 24 Appendix C. Glossary ....................................................................................................................... 26 List of Figures Fig. 1. CSF Core structure ....................................................................................................................3 Fig. 2. CSF Functions ...........................................................................................................................5'
+    - 'terms of the CSF Core''s outcomes. • CSF Tiers - Can be applied to CSF Organizational Profiles to characterize the rigor of an organization''s cybersecurity risk governance and management practices. NIST CSF 2.0: RESOURCE & OVERVIEW GUIDE EXPLORE MORE CSF 2.0 RESOURCES Informative References View and create mappings between CSF 2.0 and other documents. Do you want to submit your mappings to NIST documents and have them displayed on our site? Please follow the link to the left or email olir@nist.gov if you have any questions. Cybersecurity & Privacy Reference Tool (CPRT) Browse and download the CSF 2.0 Core & mapped content. CPRT provides a centralized, standardized, and modernized mechanism for managing reference datasets (and offers a consistent format for accessing reference data from various NIST cybersecurity and privacy standards, guidelines, and frameworks). Implementation Examples View and download notional examples of concise, action-oriented steps'
+    - 'A part of an Organizational Profile that specifies the desired Core outcomes that an organization has selected and prioritized for achieving its cybersecurity risk management objectives. CSF Tier A characterization of the rigor of an organization''s cybersecurity risk governance and management practices . There are four Tiers: Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4). NIST CSWP 29 The NIST Cybersecurity Framework (CSF) 2.0 February 26, 2024 27 Certain commercial equipment, instruments, software, or materials, commercial or non -commercial, are identified in this paper in order to specify the experimental procedure adequately. Such identification does not imply recommendation or endorsement of any product or service by NIST, nor does it imply that the materials or equipment identified are necessarily the best available for the purpose. N IST Technical Series Policies C opyright, Use, and Licensing Statements'
+  human_faithful: true
+  note: 'Real /query output. Chunk 3 states all four Tier names verbatim.'
+
+- id: cal-faithful-3
+  answer: 'A cybersecurity risk register is defined as "a repository of risk information including the data understood about risks over time" [1]. It serves as a formal communication tool for sharing and coordinating cybersecurity risk activities, providing key input to Enterprise Risk Management (ERM) decision-makers [1]. Cybersecurity risk registers are essential for managing and communicating cybersecurity risks within an organization [1,3]. They record discipline-specific risks, track changes in risks, and evolve as other risk activities occur [3]. Using a cybersecurity risk register facilitates seamless communication with senior decision-makers and supports integration into existing risk management methodologies [3]. The register may include detailed metadata and linked information depending on the organization''s risk strategy [2].'
+  context:
+    - 'risk register [1]. 1 1 OMB Circular A-11 defines a risk register as "a repository of risk information including the data understood about risks over time" [1]. The risk register provides a formal communication vehicle for sharing and coordinating cybersecurity risk activities as an input to ERM decision-makers. For example, cybersecurity risk registers are key aspects of managing and communicating about those particular risks. 2 2 Organizations creating a risk management program for the first time should not wait until the risk register is completed before addressing obvious issues. However, over time, it should become the ordinary means of communicating risk information. At higher levels in the enterprise structure, those cybersecurity and other risk registers are aggregated, normalized, and prioritized into risk profiles. A risk profile is defined by OMB Circular A-123 as "a prioritized inventory of the most significant risks identified and assessed'
+    - '. Security controls provide management, administrative, and technical methods for responding to cybersecurity risks by deterring, detecting, preventing, or correcting threats and vulnerabilities. Fig. 4 shows a notional cybersecurity risk register template. 16 16 Depending on the organization''s risk strategy, the risk register may contain many more (or fewer) fields that detail the risk metadata. That information may also be captured elsewhere but have a connected/linked path to the risk register content. An example of a completed CSRR is provided in Appendix D.'
+    - 'rprise risk conditions remain within the defined risk appetite levels as cybersecurity risks change. Enterprise risks should be recorded to document discipline-specific risks (e.g., cybersecurity, legal, financial). ISO defines this risk register (or risk log) as a "record of information about identified risks". Cybersecurity risk registers are a key aspect of managing cybersecurity risks within an enterprise, and organizations are strongly urged to adopt and integrate them into whatever risk management methodology they are currently using. Their use as a shared organizing method for cybersecurity risk ensures seamless communication with senior decision- makers. Each register evolves and matures as other risk activities take place. Section 3 of this document contains more information on cybersecurity risk registers. 2.2. The Gap Between CSRM Output and ERM Input Effectively balancing the benefits of technology with the potential risks and consequences of a'
+  human_faithful: true
+  note: 'Real /query output. Every claim traces to chunk 1, 2, or 3.'
+
+- id: cal-unfaithful-contradiction
+  answer: 'The CSF Core has five Functions: IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER.'
+  context: *csf_core_context
+  human_faithful: false
+  note: 'Corrupted. Context states six Functions including GOVERN; answer says five and omits GOVERN. Direct contradiction.'
+
+- id: cal-unfaithful-unsupported
+  answer: 'The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER. GOVERN was newly introduced in CSF 2.0, replacing the governance category that lived under IDENTIFY in CSF 1.1, following feedback on the CSF 2.0 Concept Paper.'
+  context: *csf_core_context
+  human_faithful: false
+  note: 'First claim supported. The CSF 1.1 history and Concept Paper claims are true in the world but absent from the context. Tests unsupported-not-contradicted.'

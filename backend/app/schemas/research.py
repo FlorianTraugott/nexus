@@ -8,8 +8,11 @@ ResearchStage steps.
 
 import enum
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
+
+from app.db.models import ResearchTaskStatus
 
 
 class ResearchStage(enum.StrEnum):
@@ -107,6 +110,32 @@ class ResearchResponse(BaseModel):
     report: ResearchReport | None
     warnings: list[str]
     error: str | None
+
+
+class ResearchTaskCreated(BaseModel):
+    """POST /research accepts the task and returns immediately (202)."""
+
+    task_id: uuid.UUID
+    status: ResearchTaskStatus
+
+
+class ResearchTaskRead(BaseModel):
+    """The poll envelope for GET /research/{task_id}.
+
+    Valid at every lifecycle stage: `result` stays null until the run finishes
+    (never a fabricated empty ResearchResponse), so a poller reads `status`
+    before any result exists. A recorded PIPELINE failure arrives as status
+    COMPLETED with the error carried INSIDE `result.error`; the top-level `error`
+    is populated only on INFRASTRUCTURE failure (status FAILED, result null).
+    """
+
+    task_id: uuid.UUID
+    topic: str
+    status: ResearchTaskStatus
+    result: ResearchResponse | None
+    error: str | None
+    created_at: datetime
+    updated_at: datetime
 
 
 class ResearchState(BaseModel):

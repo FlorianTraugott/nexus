@@ -96,3 +96,20 @@ def get_vector_store() -> VectorStore:
         metadata={"hnsw:space": "cosine"},
     )
     return VectorStore(collection)
+
+
+@lru_cache
+def get_image_vector_store() -> VectorStore:
+    """Build the persistent store for image captions, separate from the text one.
+
+    A distinct collection keeps image vectors off the text retrieval path
+    entirely; the VectorStore wrapper is collection-agnostic, so only the name
+    differs. Same persist dir and cosine space as the text collection.
+    """
+    settings = get_settings()
+    client = chromadb.PersistentClient(path=settings.CHROMA_PERSIST_DIR)
+    collection = client.get_or_create_collection(
+        name=settings.CHROMA_IMAGE_COLLECTION,
+        metadata={"hnsw:space": "cosine"},
+    )
+    return VectorStore(collection)

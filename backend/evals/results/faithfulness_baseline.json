@@ -1,0 +1,664 @@
+{
+  "generated_at": "2026-07-21T12:45:51.326270+00:00",
+  "k": 5,
+  "rag_max_distance": 0.5,
+  "judge_provider": "gemini",
+  "judge_model": "gemini-3.1-flash-lite",
+  "generator_model": "gpt-4.1-mini",
+  "n_answerable": 19,
+  "verdict_rule": "faithful_iff_zero_unsupported",
+  "mean_faithfulness": 0.9777777777777779,
+  "n_judged": 18,
+  "n_faithful": 17,
+  "n_unfaithful": 1,
+  "n_no_claims": 1,
+  "n_abstained": 0,
+  "n_judge_errors": 0,
+  "per_question": [
+    {
+      "id": "csf-six-functions",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER. (See context [3])",
+      "claims": [
+        {
+          "claim": "The six Functions of the CSF Core are GOVERN, IDENTIFY, PROTECT, DETECT, RESPOND, and RECOVER.",
+          "supported": true,
+          "reason": "Passage 3 explicitly lists these six Functions as the CSF Core Functions."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-govern-definition",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 3,
+      "n_unsupported": 0,
+      "answer": "The GOVERN function establishes an organization's understanding of its context, cybersecurity strategy, cybersecurity supply chain risk management, roles, responsibilities, authorities, policy, and oversight of the cybersecurity strategy. It helps link the organization\u2019s mission and stakeholder expectations to cybersecurity risk management activities and incorporates cybersecurity into the broader enterprise risk management (ERM) strategy. (References: [1], [3], [5])",
+      "claims": [
+        {
+          "claim": "The GOVERN function establishes an organization's understanding of its context, cybersecurity strategy, cybersecurity supply chain risk management, roles, responsibilities, authorities, policy, and oversight of the cybersecurity strategy.",
+          "supported": true,
+          "reason": "Passages 1 and 3 explicitly list these components as part of the GOVERN function."
+        },
+        {
+          "claim": "It helps link the organization\u2019s mission and stakeholder expectations to cybersecurity risk management activities.",
+          "supported": true,
+          "reason": "Passage 3 explicitly states that implementing the Govern Function links mission context and stakeholder expectations to risk management activities."
+        },
+        {
+          "claim": "It incorporates cybersecurity into the broader enterprise risk management (ERM) strategy.",
+          "supported": true,
+          "reason": "Passages 1 and 3 state that Govern activities are critical for incorporating cybersecurity into an organization\u2019s broader ERM strategy."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-tier-names",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "The four CSF Tiers are called: Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4). [3]",
+      "claims": [
+        {
+          "claim": "The four CSF Tiers are called: Partial (Tier 1), Risk Informed (Tier 2), Repeatable (Tier 3), and Adaptive (Tier 4).",
+          "supported": true,
+          "reason": "Passage 3 explicitly lists the four Tiers and their associated names."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-govern-center-wheel",
+      "modality": "text",
+      "status": "scored",
+      "faithful": false,
+      "score": 0.6,
+      "n_claims": 5,
+      "n_unsupported": 2,
+      "answer": "GOVERN is placed at the center of the CSF Functions wheel because it provides the organization's cybersecurity risk management strategy, expectations, and policy, which are foundational for achieving and prioritizing the outcomes of the other five Functions (Identify, Protect, Detect, Respond, and Recover) in the context of the organization's mission and stakeholder expectations. Governance activities are critical for incorporating cybersecurity into an organization's broader enterprise risk management (ERM) strategy, linking the context of its mission and stakeholder expectations to cybersecurity risk management activities. This central placement signifies its role in informing and guiding the other Functions (Passages [1], [2]).",
+      "claims": [
+        {
+          "claim": "GOVERN is placed at the center of the CSF Functions wheel because it provides the organization's cybersecurity risk management strategy, expectations, and policy.",
+          "supported": false,
+          "reason": "The context mentions that GOVERN provides these items, but it does not state that GOVERN is placed at the center of a 'Functions wheel'."
+        },
+        {
+          "claim": "GOVERN is foundational for achieving and prioritizing the outcomes of the other five Functions in the context of the organization's mission and stakeholder expectations.",
+          "supported": true,
+          "reason": "Passage [1] states that the GOVERN function provides outcomes to inform what an organization may do to achieve and prioritize the outcomes of the other five Functions in the context of its mission and stakeholder expectations."
+        },
+        {
+          "claim": "Governance activities are critical for incorporating cybersecurity into an organization's broader enterprise risk management (ERM) strategy.",
+          "supported": true,
+          "reason": "Passages [1] and [2] both state that governance activities are critical for incorporating cybersecurity into an organization's broader ERM strategy."
+        },
+        {
+          "claim": "Governance activities link the context of an organization's mission and stakeholder expectations to cybersecurity risk management activities.",
+          "supported": true,
+          "reason": "Passage [2] states that by implementing the CSF 2.0 Govern Function, enterprises link the context of its mission and stakeholder expectations to cybersecurity risk management activities."
+        },
+        {
+          "claim": "The central placement of GOVERN signifies its role in informing and guiding the other Functions.",
+          "supported": false,
+          "reason": "The provided text does not mention or confirm the existence of a 'Functions wheel' or the 'central placement' of GOVERN."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-old-name",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "Before version 2.0, the Cybersecurity Framework was called the \"Framework for Improving Critical Infrastructure Cybersecurity.\" [1]",
+      "claims": [
+        {
+          "claim": "Before version 2.0, the Cybersecurity Framework was called the \"Framework for Improving Critical Infrastructure Cybersecurity.\"",
+          "supported": true,
+          "reason": "Passage 1 explicitly states that before version 2.0, the Cybersecurity Framework was called the \u201cFramework for Improving Critical Infrastructure Cybersecurity.\u201d"
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-least-privilege",
+      "modality": "text",
+      "status": "no_claims",
+      "faithful": null,
+      "score": null,
+      "n_claims": 0,
+      "n_unsupported": 0,
+      "answer": "I don't have enough information in the provided context passages to determine which CSF subcategory covers least privilege and separation of duties.",
+      "claims": [],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-profile-steps",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 3,
+      "n_unsupported": 0,
+      "answer": "The first step in creating a CSF Organizational Profile is to \"Scope the Organizational Profile.\" This involves documenting the high-level facts and assumptions on which the Profile will be based to define its scope. An organization can create multiple Organizational Profiles with different scopes, such as for the entire organization or specific systems or threat types [1].",
+      "claims": [
+        {
+          "claim": "The first step in creating a CSF Organizational Profile is to \"Scope the Organizational Profile.\"",
+          "supported": true,
+          "reason": "Passage 1 explicitly lists '1. Scope the Organizational Profile' as the first step."
+        },
+        {
+          "claim": "This involves documenting the high-level facts and assumptions on which the Profile will be based to define its scope.",
+          "supported": true,
+          "reason": "Passage 1 states this is the requirement for the first step."
+        },
+        {
+          "claim": "An organization can create multiple Organizational Profiles with different scopes, such as for the entire organization or specific systems or threat types.",
+          "supported": true,
+          "reason": "Passage 1 provides examples of different scopes including the entire organization, financial systems, and countering ransomware threats."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-supply-chain-pub",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 2,
+      "n_unsupported": 0,
+      "answer": "The NIST Cybersecurity Framework (CSF) 2.0, specifically the Category Supply Chain Risk Management (GV.SC), gives in-depth guidance on cybersecurity supply chain risk management as described in context passages [1] and [3]. This framework includes detailed outcomes and practices such as supplier prioritization, establishing cybersecurity risk requirements in contracts, conducting due diligence, ongoing risk assessment and monitoring, and including suppliers in incident planning and response activities.",
+      "claims": [
+        {
+          "claim": "The NIST Cybersecurity Framework (CSF) 2.0, specifically the Category Supply Chain Risk Management (GV.SC), gives in-depth guidance on cybersecurity supply chain risk management.",
+          "supported": true,
+          "reason": "Passage [1] explicitly states that relevant outcomes to achieving cyber supply chain security are described in the CSF 2.0 Category Supply Chain Risk Management (GV.SC)."
+        },
+        {
+          "claim": "This framework includes detailed outcomes and practices such as supplier prioritization, establishing cybersecurity risk requirements in contracts, conducting due diligence, ongoing risk assessment and monitoring, and including suppliers in incident planning and response activities.",
+          "supported": true,
+          "reason": "Passage [3] lists the specific outcomes GV.SC-04 through GV.SC-08 which correspond exactly to these practices."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-privacy-pram",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 1,
+      "n_unsupported": 0,
+      "answer": "The NIST Privacy Risk Assessment Methodology (PRAM) has a catalog of example problems for use in privacy risk assessments. [From passage 1]",
+      "claims": [
+        {
+          "claim": "The NIST Privacy Risk Assessment Methodology (PRAM) has a catalog of example problems for use in privacy risk assessments.",
+          "supported": true,
+          "reason": "Passage 1 explicitly states that the NIST Privacy Risk Assessment Methodology (PRAM) has a catalog of example problems for use in privacy risk assessments."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "erm-integration-authority",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 8,
+      "n_unsupported": 0,
+      "answer": "Cybersecurity risk management should be integrated with enterprise risk management (ERM) by incorporating cybersecurity risks into the broader ERM processes at various organizational levels and ensuring alignment with enterprise objectives. According to the provided context:\n\n- Organizations may integrate ICT (Information and Communications Technology) and all other risk management efforts at a high level by using ERM or keep efforts separate to ensure adequate attention on each, depending on size and complexity (Context 1). \n\n- An ERM approach helps balance a portfolio of risk considerations, including cybersecurity, to make informed decisions, facilitating translation of cybersecurity risks into general risk management language for executives (Context 1).\n\n- Risk information, including cybersecurity risks, should be maintained within risk registers at enterprise, organizational, and system levels. These registers encompass all types of risks and are evaluated in the enterprise risk register (ERR) (Context 4).\n\n- Senior executives should ensure individual cybersecurity risks at the system level are collected, analyzed, and aligned with enterprise strategic objectives. This alignment enables a portfolio view of key risks across the enterprise and supports continuous improvement within ERM frameworks to achieve the organization's mission (Context 3).\n\n- ERM processes aid senior enterprise executives by providing a portfolio view of key risks, including cybersecurity, enabling them to assess impacts, determine risk appetite, and allocate resources accordingly (Context 2).\n\n- Managing cybersecurity risks as part of ERM involves identifying and understanding cybersecurity risks, determining how best to address those risks, and ensuring necessary actions occur to address them within the enterprise risk context (Context 5).\n\nIn summary, cybersecurity risk management should be integrated into ERM by embedding cybersecurity risks into comprehensive risk registers, aligning such risks with enterprise strategic goals, using ERM to balance and prioritize risks enterprise-wide, and ensuring senior executives receive and act upon portfolio-level risk information for effective governance and decision-making.",
+      "claims": [
+        {
+          "claim": "Organizations may integrate ICT and all other risk management efforts at a high level by using ERM or keep efforts separate to ensure adequate attention on each, depending on size and complexity.",
+          "supported": true,
+          "reason": "Passage 1 describes that some organizations integrate ICT and risk management via ERM, while others keep them separate to ensure adequate attention, noting that organization size can be a factor."
+        },
+        {
+          "claim": "An ERM approach helps balance a portfolio of risk considerations, including cybersecurity, to make informed decisions, facilitating translation of cybersecurity risks into general risk management language for executives.",
+          "supported": true,
+          "reason": "Passage 1 confirms that ERM allows balancing a portfolio of risk considerations and helps translate cybersecurity terminology into general management language for executives."
+        },
+        {
+          "claim": "Risk information, including cybersecurity risks, should be maintained within risk registers at enterprise, organizational, and system levels.",
+          "supported": true,
+          "reason": "Passage 4 states that risk registers from all ICT risks, including cybersecurity, are maintained at enterprise, organizational, and system levels."
+        },
+        {
+          "claim": "These registers encompass all types of risks and are evaluated in the enterprise risk register (ERR).",
+          "supported": true,
+          "reason": "Passage 4 explains that risks become part of a broader enterprise risk register that encompasses all disciplines and are brought together for evaluation in the ERR."
+        },
+        {
+          "claim": "Senior executives should ensure individual cybersecurity risks at the system level are collected, analyzed, and aligned with enterprise strategic objectives.",
+          "supported": true,
+          "reason": "Passage 3 explicitly states that senior executives can ensure individual cybersecurity risks at the system level are collected, analyzed, and aligned with enterprise strategic objectives."
+        },
+        {
+          "claim": "This alignment enables a portfolio view of key risks across the enterprise and supports continuous improvement within ERM frameworks to achieve the organization's mission.",
+          "supported": true,
+          "reason": "Passage 3 confirms this collective understanding helps leaders assess risk changes and pursue improvement within ERM to achieve the mission."
+        },
+        {
+          "claim": "ERM processes aid senior enterprise executives by providing a portfolio view of key risks, including cybersecurity, enabling them to assess impacts, determine risk appetite, and allocate resources accordingly.",
+          "supported": true,
+          "reason": "Passage 2 states that ERM processes provide a portfolio view of key risks, and that enterprises determine risk appetite and resource allocations for each type of risk."
+        },
+        {
+          "claim": "Managing cybersecurity risks as part of ERM involves identifying and understanding cybersecurity risks, determining how best to address those risks, and ensuring necessary actions occur to address them within the enterprise risk context.",
+          "supported": true,
+          "reason": "Passage 5 defines the process of ERM as identifying, understanding, and addressing risks, and notes that the publication focuses on incorporating cybersecurity risk considerations into this process."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "risk-register",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 8,
+      "n_unsupported": 0,
+      "answer": "A cybersecurity risk register is defined as a repository or record of information about identified cybersecurity risks, including data understood about these risks over time [1],[3]. It serves as a formal communication vehicle for sharing and coordinating cybersecurity risk activities and acts as a key aspect of managing and communicating cybersecurity risks within an organization [1],[3]. The register is used to document discipline-specific risks (e.g., cybersecurity) and to ensure seamless communication with senior decision-makers by providing a shared organizing method for cybersecurity risk [3].\n\nOver time, the cybersecurity risk register becomes the ordinary means of communicating risk information within an enterprise and is used to track cybersecurity risks and their statuses over time [1],[5]. At higher levels, cybersecurity risk registers are aggregated, normalized, and prioritized into risk profiles, which comprise prioritized inventories of the most significant risks identified and assessed [1],[5].\n\nAdditionally, the risk register captures various risk metadata and may be linked to other detailed documents such as risk assessment reports, which complement the register by providing detailed records of planning, execution, and evaluation of identified risks [2],[4]. The register can include current risk assessment results and anticipated changes following risk response, tracking both residual risk and target residual risk based on the organization's risk appetite and tolerance [4],[5].\n\nIn summary, a cybersecurity risk register is used to document, communicate, manage, and track cybersecurity risks over time, supporting informed decision-making and integration of cybersecurity risk management into overall enterprise risk management processes [1],[3],[5].",
+      "claims": [
+        {
+          "claim": "A cybersecurity risk register is defined as a repository or record of information about identified cybersecurity risks, including data understood about these risks over time.",
+          "supported": true,
+          "reason": "Passage 1 cites OMB Circular A-11 defining it as a repository of risk information, and Passage 3 cites ISO defining it as a record of information about identified risks."
+        },
+        {
+          "claim": "It serves as a formal communication vehicle for sharing and coordinating cybersecurity risk activities and acts as a key aspect of managing and communicating cybersecurity risks within an organization.",
+          "supported": true,
+          "reason": "Passage 1 and Passage 3 confirm the register serves as a formal communication vehicle and is a key aspect of managing/communicating these risks."
+        },
+        {
+          "claim": "The register is used to document discipline-specific risks (e.g., cybersecurity) and to ensure seamless communication with senior decision-makers by providing a shared organizing method for cybersecurity risk.",
+          "supported": true,
+          "reason": "Passage 3 explicitly states the register documents discipline-specific risks and ensures seamless communication with senior decision-makers through a shared organizing method."
+        },
+        {
+          "claim": "Over time, the cybersecurity risk register becomes the ordinary means of communicating risk information within an enterprise and is used to track cybersecurity risks and their statuses over time.",
+          "supported": true,
+          "reason": "Passage 1 and Passage 5 confirm the register is used to track risks/statuses over time, and Passage 1 confirms it becomes the ordinary means of communicating risk information."
+        },
+        {
+          "claim": "At higher levels, cybersecurity risk registers are aggregated, normalized, and prioritized into risk profiles, which comprise prioritized inventories of the most significant risks identified and assessed.",
+          "supported": true,
+          "reason": "Passage 1 and Passage 5 both describe the aggregation, normalization, and prioritization of registers into risk profiles defined as prioritized inventories."
+        },
+        {
+          "claim": "Additionally, the risk register captures various risk metadata and may be linked to other detailed documents such as risk assessment reports, which complement the register by providing detailed records of planning, execution, and evaluation of identified risks.",
+          "supported": true,
+          "reason": "Passage 2 mentions metadata, and Passage 4 discusses the risk assessment report (RAR) as a complementary document containing details of planning, execution, and evaluation."
+        },
+        {
+          "claim": "The register can include current risk assessment results and anticipated changes following risk response, tracking both residual risk and target residual risk based on the organization's risk appetite and tolerance.",
+          "supported": true,
+          "reason": "Passage 4 explains that the register can reflect residual risk and target residual risk based on risk appetite."
+        },
+        {
+          "claim": "In summary, a cybersecurity risk register is used to document, communicate, manage, and track cybersecurity risks over time, supporting informed decision-making and integration of cybersecurity risk management into overall enterprise risk management processes.",
+          "supported": true,
+          "reason": "Passages 1, 3, and 5 collectively support the summary of these functions."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "risk-appetite-tolerance",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 8,
+      "n_unsupported": 0,
+      "answer": "The difference between risk appetite and risk tolerance is as follows:\n\n- Risk appetite refers to the broad-based amount or level of risk an enterprise is willing to accept in pursuit of its mission, vision, or value (Context [5]). It is a higher-level statement about the overall willingness to accept risk. For example, a risk appetite statement might be: \u201cEmail service shall be available during the large majority of a 24-hour period\u201d (Context [1]).\n\n- Risk tolerance is narrower and more specific, representing the organization's or stakeholder's readiness to bear the remaining risk after responding to it in order to achieve objectives. It indicates the acceptable level of variance in performance relative to objectives and can be influenced by legal or regulatory requirements (Contexts [2], [4]). An example corresponding to the above appetite is: \u201cEmail services shall not be interrupted for more than five minutes during core hours\u201d (Context [1]).\n\nFurthermore, risk tolerance is often defined at enterprise or organizational levels and is applied by risk management custodians, including cybersecurity, legal, privacy, and system levels (Context [2]). Risk appetite and tolerance statements are typical means for communicating risk guidance from senior executives (Contexts [1], [3]).",
+      "claims": [
+        {
+          "claim": "Risk appetite refers to the broad-based amount or level of risk an enterprise is willing to accept in pursuit of its mission, vision, or value.",
+          "supported": true,
+          "reason": "Passage [5] supports this definition."
+        },
+        {
+          "claim": "Risk appetite is a higher-level statement about the overall willingness to accept risk.",
+          "supported": true,
+          "reason": "Passage [1] indicates that risk appetite is a broader statement, contrasting it with the narrower nature of risk tolerance."
+        },
+        {
+          "claim": "An example of a risk appetite statement is: \u201cEmail service shall be available during the large majority of a 24-hour period.\u201d",
+          "supported": true,
+          "reason": "Passage [1] explicitly provides this example for a risk appetite statement."
+        },
+        {
+          "claim": "Risk tolerance is narrower and more specific, representing the organization's or stakeholder's readiness to bear the remaining risk after responding to it in order to achieve objectives.",
+          "supported": true,
+          "reason": "Passages [1] and [4] define risk tolerance as a narrower, more specific readiness to bear remaining risk."
+        },
+        {
+          "claim": "Risk tolerance indicates the acceptable level of variance in performance relative to objectives and can be influenced by legal or regulatory requirements.",
+          "supported": true,
+          "reason": "Passage [2] explicitly defines risk tolerance for federal entities this way, mentioning the influence of legal/regulatory requirements."
+        },
+        {
+          "claim": "An example of a risk tolerance statement is: \u201cEmail services shall not be interrupted for more than five minutes during core hours.\u201d",
+          "supported": true,
+          "reason": "Passage [1] explicitly provides this as an example of an associated risk tolerance statement."
+        },
+        {
+          "claim": "Risk tolerance is often defined at enterprise or organizational levels and is applied by risk management custodians, including cybersecurity, legal, privacy, and system levels.",
+          "supported": true,
+          "reason": "Passage [2] supports that risk tolerance is defined at enterprise/organizational levels and applied by these specific custodians."
+        },
+        {
+          "claim": "Risk appetite and tolerance statements are typical means for communicating risk guidance from senior executives.",
+          "supported": true,
+          "reason": "Passages [1] and [3] state that risk appetite and tolerance statements are the usual means for communicating this guidance."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "img-q3-units",
+      "modality": "image",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 2,
+      "n_unsupported": 0,
+      "answer": "I don't have enough information to answer. The exact figures for each quarter, including Q3, are said to be detailed visually in a chart mentioned in passage [1], but the chart itself and specific data are not provided in the text.",
+      "claims": [
+        {
+          "claim": "The exact figures for each quarter are said to be detailed visually in a chart mentioned in passage [1].",
+          "supported": true,
+          "reason": "Passage [1] states that the exact figures for each quarter are detailed visually in the provided chart."
+        },
+        {
+          "claim": "The chart itself and specific data are not provided in the text.",
+          "supported": true,
+          "reason": "The provided context contains only text passages, and no chart or specific numerical data for the quarters is included."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "img-q1-units",
+      "modality": "image",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 3,
+      "n_unsupported": 0,
+      "answer": "I don't have enough information to determine the Q1 figure in the quarterly performance chart. The exact figures are said to be detailed visually in the chart referenced in passage [1], but the numerical data or the chart itself is not provided in the context.",
+      "claims": [
+        {
+          "claim": "I don't have enough information to determine the Q1 figure in the quarterly performance chart.",
+          "supported": true,
+          "reason": "Passage 1 mentions that figures are detailed in a chart, but the chart and its numerical data are not provided in the context."
+        },
+        {
+          "claim": "The exact figures are said to be detailed visually in the chart referenced in passage [1].",
+          "supported": true,
+          "reason": "Passage 1 states that exact figures are detailed visually in the provided chart."
+        },
+        {
+          "claim": "The numerical data or the chart itself is not provided in the context.",
+          "supported": true,
+          "reason": "The provided context passages do not contain the chart or the numerical data referenced in passage 1."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "qsg-small-business-audience",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 4,
+      "n_unsupported": 0,
+      "answer": "NIST provides a Small Business Quick-Start Guide specifically for small-to-medium sized businesses (SMBs), particularly those with modest or no cybersecurity plans in place, to kick-start their cybersecurity risk management strategy by using the NIST Cybersecurity Framework (CSF) 2.0. This guide offers considerations tailored to SMBs and also assists other relatively small organizations such as non-profits, government agencies, and schools. It serves as a supplement to the full CSF 2.0 and is not intended to replace it. The guide helps these businesses begin managing and improving their cybersecurity posture in a way that is accessible and relevant to their size and resources (see passages [1], [2], and [4]).",
+      "claims": [
+        {
+          "claim": "NIST provides a Small Business Quick-Start Guide specifically for small-to-medium sized businesses (SMBs), particularly those with modest or no cybersecurity plans in place, to kick-start their cybersecurity risk management strategy by using the NIST Cybersecurity Framework (CSF) 2.0.",
+          "supported": true,
+          "reason": "Passage 1 and 2 explicitly confirm the guide is for SMBs with modest or no plans to kick-start risk management using the CSF 2.0."
+        },
+        {
+          "claim": "This guide offers considerations tailored to SMBs and also assists other relatively small organizations such as non-profits, government agencies, and schools.",
+          "supported": true,
+          "reason": "Passage 1 and 4 confirm the guide assists non-profits, government agencies, and schools."
+        },
+        {
+          "claim": "It serves as a supplement to the full CSF 2.0 and is not intended to replace it.",
+          "supported": true,
+          "reason": "Passage 1 and 4 state the guide is a supplement and not intended to replace the CSF."
+        },
+        {
+          "claim": "The guide helps these businesses begin managing and improving their cybersecurity posture in a way that is accessible and relevant to their size and resources.",
+          "supported": true,
+          "reason": "Passage 3 states that special attention is paid to the QSGs to ensure the CSF is relevant and accessible by smaller organizations."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "qsg-profiles-guide",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 2,
+      "n_unsupported": 0,
+      "answer": "The Quick-Start Guide referred to is titled \"NIST CSF 2.0: CREATING AND USING ORGANIZATIONAL PROFILES A QUICK START GUIDE\" as mentioned in contexts [1], [2], [3], [4], and [5].",
+      "claims": [
+        {
+          "claim": "The Quick-Start Guide is titled \"NIST CSF 2.0: CREATING AND USING ORGANIZATIONAL PROFILES A QUICK START GUIDE\".",
+          "supported": true,
+          "reason": "This title is explicitly stated in the headers of documents [2], [3], and [5]."
+        },
+        {
+          "claim": "The guide is mentioned in contexts [1], [2], [3], [4], and [5].",
+          "supported": true,
+          "reason": "The guide or its contents are referenced or described in each of the provided passages [1] through [5]."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "profile-steps-practical",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 10,
+      "n_unsupported": 0,
+      "answer": "The practical steps for building a Current Profile and a Target Profile are as follows:\n\n1. Define the Scope: Determine the high-level facts and assumptions for the Profiles, including the reason for creating the Organizational Profile, the parts of the organization to be covered (such as divisions, data assets, technology assets, products, services, partners, and suppliers), and the types of cybersecurity threats, vulnerabilities, attacks, and defenses to be included. (Context [5])\n\n2. Create the Current Profile: Document the organization's existing cybersecurity capabilities and their state. (Implied from [1])\n\n3. Create the Target Profile: Specify the desired cybersecurity outcomes the organization aims to achieve to manage risk. This can be based on selected outcomes, a Community Profile, or informed by CSF Tiers that characterize the desired rigor of cybersecurity practices. Adjustments can be made to priorities and adding organization-specific details as needed. (Context [2], [4])\n\n4. Conduct Gap Analysis: Analyze the differences between the Current and Target Profiles to identify gaps. (Context [1])\n\n5. Develop an Action Plan: Prioritize actions to address the gaps, potentially using tools like a risk register, risk detail report, or Plan of Action and Milestones (POA&M). (Context [1])\n\n6. Implement the Action Plan and Update Profiles: Follow the action plan to improve cybersecurity capabilities and update the Organizational Profile accordingly. This process is iterative and can be repeated to support continual improvement. (Context [1], [5])\n\n7. Use Tools and Resources: Utilize resources such as the NIST CSF Organizational Profile Template and the NIST Cybersecurity Framework Reference Tool for guidance and implementation examples. (Context [3], [4])\n\nThis sequence provides a structured approach to building and using Current and Target Profiles for managing cybersecurity risk.",
+      "claims": [
+        {
+          "claim": "Define the Scope: Determine the high-level facts and assumptions for the Profiles, including the reason for creating the Organizational Profile, the parts of the organization to be covered, and the types of cybersecurity threats, vulnerabilities, attacks, and defenses to be included.",
+          "supported": true,
+          "reason": "Passage 5 outlines the scope definition steps including the reason for creation, the organizational coverage, and the threats/defenses to be included."
+        },
+        {
+          "claim": "Create the Current Profile: Document the organization's existing cybersecurity capabilities and their state.",
+          "supported": true,
+          "reason": "Passage 1 mentions that a Current Profile can be used to document and communicate an organization\u2019s cybersecurity capabilities."
+        },
+        {
+          "claim": "Create the Target Profile: Specify the desired cybersecurity outcomes the organization aims to achieve to manage risk.",
+          "supported": true,
+          "reason": "Passage 2 states that a Target Profile specifies the outcomes an organization has selected and prioritized for achieving its cybersecurity risk management objectives."
+        },
+        {
+          "claim": "The Target Profile can be based on selected outcomes, a Community Profile, or informed by CSF Tiers.",
+          "supported": true,
+          "reason": "Passage 2 confirms that you can use a Community Profile as a basis for your Target Profile and choose to use CSF Tiers to inform Profile creation."
+        },
+        {
+          "claim": "Adjustments can be made to priorities and adding organization-specific details as needed.",
+          "supported": true,
+          "reason": "Passage 4 explains that a Community Profile can be adapted by adjusting priorities of outcomes and adding organization-specific Subcategories or references."
+        },
+        {
+          "claim": "Conduct Gap Analysis: Analyze the differences between the Current and Target Profiles to identify gaps.",
+          "supported": true,
+          "reason": "Passage 1 states that an organization should conduct a gap analysis to identify and analyze the differences between the Current and Target Profiles."
+        },
+        {
+          "claim": "Develop an Action Plan: Prioritize actions to address the gaps, potentially using tools like a risk register, risk detail report, or Plan of Action and Milestones (POA&M).",
+          "supported": true,
+          "reason": "Passage 1 lists these specific examples as part of a prioritized action plan to address gaps."
+        },
+        {
+          "claim": "Implement the Action Plan and Update Profiles: Follow the action plan to improve cybersecurity capabilities and update the Organizational Profile accordingly.",
+          "supported": true,
+          "reason": "Passage 1 describes implementing the action plan to address gaps and updating the Organizational Profile."
+        },
+        {
+          "claim": "This process is iterative and can be repeated to support continual improvement.",
+          "supported": true,
+          "reason": "Passage 1 notes the importance of continual improvement and that an organization can repeat these steps as often as needed."
+        },
+        {
+          "claim": "Use Tools and Resources: Utilize resources such as the NIST CSF Organizational Profile Template and the NIST Cybersecurity Framework Reference Tool for guidance and implementation examples.",
+          "supported": true,
+          "reason": "Passage 4 describes the NIST Organizational Profile Template, and Passage 3 describes the NIST Cybersecurity Framework Reference Tool."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "gap-analysis",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 10,
+      "n_unsupported": 0,
+      "answer": "To perform a gap analysis between your current and target cybersecurity posture, follow these steps:\n\n1. Document your Current Profile: Assess and record your organization's existing cybersecurity practices and conditions. (Context: [2], [5])\n\n2. Define your Target Profile: Identify the desired organizational cybersecurity practices and the target state you want to achieve. (Context: [1], [2], [5])\n\n3. Analyze the gaps: Compare the Current Profile with the Target Profile to identify the differences or gaps in cybersecurity capabilities and practices. This step includes reviewing the risk implications of the current state relative to the target state. (Context: [1], [2], [5])\n\n4. Create an action plan: Develop a prioritized plan of action to address the identified gaps. This plan may include components like a risk register, risk detail report, or Plan of Action and Milestones (POA&M). (Context: [2], [3])\n\n5. Implement and update: Follow the action plan to address gaps and move toward the Target Profile. Continuously update the Organizational Profile as improvements are made, repeating the process as often as needed for continual improvement. (Context: [2], [3], [4])\n\nAdditionally, you can use tools like SWOT analysis to help identify strengths, weaknesses, opportunities, and threats in your cybersecurity posture, which may inform the gap analysis. (Context: [1])\n\nThis process allows organizations to compare their current cybersecurity posture versus where they want or need to be and implement and assess security controls effectively. (Context: [4])",
+      "claims": [
+        {
+          "claim": "To perform a gap analysis between your current and target cybersecurity posture, follow these steps: 1. Document your Current Profile: Assess and record your organization's existing cybersecurity practices and conditions.",
+          "supported": true,
+          "reason": "Passages 2 and 5 describe assessing and recording organizational practices as a current state profile."
+        },
+        {
+          "claim": "2. Define your Target Profile: Identify the desired organizational cybersecurity practices and the target state you want to achieve.",
+          "supported": true,
+          "reason": "Passages 1, 2, and 5 discuss identifying desired organizational practices as a target state profile."
+        },
+        {
+          "claim": "3. Analyze the gaps: Compare the Current Profile with the Target Profile to identify the differences or gaps in cybersecurity capabilities and practices.",
+          "supported": true,
+          "reason": "Passages 2 and 3 explicitly state that gap analysis involves determining the differences between Current and Target Profiles."
+        },
+        {
+          "claim": "This step includes reviewing the risk implications of the current state relative to the target state.",
+          "supported": true,
+          "reason": "Passages 1 and 5 mention the review of risk implications of the current state toward the target state."
+        },
+        {
+          "claim": "4. Create an action plan: Develop a prioritized plan of action to address the identified gaps.",
+          "supported": true,
+          "reason": "Passage 2 states that a prioritized action plan should be developed to address gaps."
+        },
+        {
+          "claim": "This plan may include components like a risk register, risk detail report, or Plan of Action and Milestones (POA&M).",
+          "supported": true,
+          "reason": "Passage 2 lists these specific examples of an action plan."
+        },
+        {
+          "claim": "5. Implement and update: Follow the action plan to address gaps and move toward the Target Profile.",
+          "supported": true,
+          "reason": "Passage 2 explicitly describes implementing the action plan to address gaps and move toward the Target Profile."
+        },
+        {
+          "claim": "Continuously update the Organizational Profile as improvements are made, repeating the process as often as needed for continual improvement.",
+          "supported": true,
+          "reason": "Passage 2 states to update the Organizational Profile and that organizations can repeat steps as often as needed for continual improvement."
+        },
+        {
+          "claim": "Additionally, you can use tools like SWOT analysis to help identify strengths, weaknesses, opportunities, and threats in your cybersecurity posture, which may inform the gap analysis.",
+          "supported": true,
+          "reason": "Passage 1 explains that SWOT analysis helps identify potential cybersecurity risk outcomes and describe context."
+        },
+        {
+          "claim": "This process allows organizations to compare their current cybersecurity posture versus where they want or need to be and implement and assess security controls effectively.",
+          "supported": true,
+          "reason": "Passage 4 states that target state Organizational Profiles allow organizations to compare where they are versus where they need to be and implement/assess security controls."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    },
+    {
+      "id": "csf-online-resources",
+      "modality": "text",
+      "status": "scored",
+      "faithful": true,
+      "score": 1.0,
+      "n_claims": 4,
+      "n_unsupported": 0,
+      "answer": "The online resources that supplement the CSF include Implementation Examples and Informative References, which are available online and updated regularly [1]. Additionally, the NIST CSF website hosts Quick Start Guides, Community Profiles, and a Cybersecurity & Privacy Reference Tool (CPRT) that provides a centralized and standardized mechanism for managing reference datasets and accessing reference data from various NIST cybersecurity and privacy standards, guidelines, and frameworks [4, 5]. These resources are made publicly available on the NIST CSF website [5].",
+      "claims": [
+        {
+          "claim": "The online resources that supplement the CSF include Implementation Examples and Informative References, which are available online and updated regularly.",
+          "supported": true,
+          "reason": "Passage 1 confirms that NIST provides Implementation Examples and Informative References which are available online and updated regularly."
+        },
+        {
+          "claim": "The NIST CSF website hosts Quick Start Guides, Community Profiles, and a Cybersecurity & Privacy Reference Tool (CPRT).",
+          "supported": true,
+          "reason": "Passages 4 and 5 confirm the availability of Quick Start Guides, Community Profiles, and the CPRT."
+        },
+        {
+          "claim": "The CPRT provides a centralized and standardized mechanism for managing reference datasets and accessing reference data from various NIST cybersecurity and privacy standards, guidelines, and frameworks.",
+          "supported": true,
+          "reason": "Passage 4 describes the CPRT as a centralized, standardized, and modernized mechanism for managing reference datasets and accessing reference data from NIST standards, guidelines, and frameworks."
+        },
+        {
+          "claim": "These resources are made publicly available on the NIST CSF website.",
+          "supported": true,
+          "reason": "Passage 5 explicitly states that all resources are made publicly available on the NIST CSF website."
+        }
+      ],
+      "error_message": null,
+      "error_raw_preview": null
+    }
+  ]
+}

@@ -1,0 +1,863 @@
+{
+  "generated_at": "2026-07-23T09:47:08.101928+00:00",
+  "k": 5,
+  "rag_max_distance": 0.5,
+  "chunking": {
+    "chunk_size": 600,
+    "chunk_overlap": 150,
+    "total_chunks": 836
+  },
+  "n_questions": 22,
+  "n_answerable": 19,
+  "n_negative": 3,
+  "abstention": {
+    "rag_max_distance": 0.5,
+    "negatives_correctly_abstained": 3,
+    "negatives_total": 3,
+    "answerable_false_abstentions": 0,
+    "answerable_total": 19
+  },
+  "overall": {
+    "n": 19,
+    "hit_rate": 0.7894736842105263,
+    "mrr": 0.6842105263157895,
+    "doc_top1_acc": 0.7894736842105263
+  },
+  "by_modality": {
+    "text": {
+      "n": 17,
+      "hit_rate": 0.7647058823529411,
+      "mrr": 0.6470588235294118,
+      "doc_top1_acc": 0.7647058823529411
+    },
+    "image": {
+      "n": 2,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "doc_top1_acc": 1.0
+    }
+  },
+  "by_difficulty": {
+    "hard": {
+      "n": 7,
+      "hit_rate": 0.8571428571428571,
+      "mrr": 0.6785714285714286,
+      "doc_top1_acc": 0.5714285714285714
+    },
+    "normal": {
+      "n": 12,
+      "hit_rate": 0.75,
+      "mrr": 0.6875,
+      "doc_top1_acc": 0.9166666666666666
+    }
+  },
+  "negatives": {
+    "mean_answerable_top1_distance": 0.3191877352563958,
+    "per_question": [
+      {
+        "id": "absent-gdpr-fines",
+        "top1_distance": 0.6055930852890015
+      },
+      {
+        "id": "absent-kubernetes",
+        "top1_distance": 0.7395482063293457
+      },
+      {
+        "id": "absent-soc2",
+        "top1_distance": 0.536879301071167
+      }
+    ]
+  },
+  "per_question": [
+    {
+      "id": "csf-six-functions",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "GOVERN",
+        "RECOVER"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.35311996936798096,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.35311996936798096,
+          "snippet": "s Fig. 1. CSF Core structure ..........................................................................................."
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3679318428039551,
+          "snippet": "15 Appendix B. CSF Tiers ..............................................................................................."
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3823705315589905,
+          "snippet": ". \u2022 Section 3 defines the concepts of CSF Profiles and Tiers. \u2022 Section 4 provides an overview of selected components of"
+        }
+      ]
+    },
+    {
+      "id": "csf-govern-definition",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "Governance activities are critical",
+        "enterprise risk management"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.39817893505096436,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.39817893505096436,
+          "snippet": "and policy are established, communicated, and monitored. The GOVERN Function provides outcomes to inform what an organiz"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.471301794052124,
+          "snippet": "pplied at the system level \u2014 the updated results can be shared through risk registers and progress reports. As part of o"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1300.pdf",
+          "distance": 0.5317099094390869,
+          "snippet": "E MORE CSF 2.0 RESOURCES nist.gov/cyberframework Quickly find what you need, including: \uf0fcA suite of NEW Quick Start Guid"
+        }
+      ]
+    },
+    {
+      "id": "csf-tier-names",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "Adaptive",
+        "Risk Informed"
+      ],
+      "hit": 1,
+      "rank": 4,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.32372337579727173,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.32372337579727173,
+          "snippet": ". \u2022 Section 3 defines the concepts of CSF Profiles and Tiers. \u2022 Section 4 provides an overview of selected components of"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1300.pdf",
+          "distance": 0.34841275215148926,
+          "snippet": "e the CSF Tiers t o inform your Profile creation. Tiers characterize the current or targeted rigor of an organization\u2019s "
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3673294186592102,
+          "snippet": "15 Appendix B. CSF Tiers ..............................................................................................."
+        }
+      ]
+    },
+    {
+      "id": "csf-govern-center-wheel",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "informs how an organization will implement the other five"
+      ],
+      "hit": 0,
+      "rank": null,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.39902597665786743,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.39902597665786743,
+          "snippet": "he Core is intended to resonate most with those charged with operationalizing risk management within an organization. Fi"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.4382759928703308,
+          "snippet": "eel because all of the Functions relate to one another. For example, an organization will categorize assets under IDENTI"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.4459463357925415,
+          "snippet": "ganization is currently achieving (or attempting to achieve) and characterizes how or to what extent each outcome is bei"
+        }
+      ]
+    },
+    {
+      "id": "csf-old-name",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "Framework for Improving"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.22827553749084473,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.22827553749084473,
+          "snippet": "0, the Cybersecurity Framework was called the \u201cFramework for Improving Critical Infrastructure Cybersecurity.\u201d This titl"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.31459271907806396,
+          "snippet": "National Institute of Standards and Technology This publication is available free of charge from: https://doi.org/10.602"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3236832618713379,
+          "snippet": "ggestions for additional resources to reference on the NIST CSF website can always be shared with NIST at cyberframework"
+        }
+      ]
+    },
+    {
+      "id": "csf-least-privilege",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "PR.AA-05"
+      ],
+      "hit": 0,
+      "rank": null,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.41642552614212036,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.41642552614212036,
+          "snippet": "ps in numbering indicate CSF 1.1 Subcategories that were relocated in CSF 2.0. Table 1. CSF 2.0 Core Function and Catego"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.43025702238082886,
+          "snippet": "ples of least privilege and separation of duties o PR.AA-06: Physical access to assets is managed, monitored, and enforc"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.47774702310562134,
+          "snippet": "ssity, the way organizations implement the CSF will vary. Ideally, the CSF will be used to address cybersecurity risks a"
+        }
+      ]
+    },
+    {
+      "id": "csf-profile-steps",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "Scope the Organizational Profile"
+      ],
+      "hit": 0,
+      "rank": null,
+      "doc_top1": 0,
+      "top1_doc": "NIST.SP.1301.pdf",
+      "top1_distance": 0.2508701682090759,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.2508701682090759,
+          "snippet": ". Steps for creating an Organizational Profile are: 3a: Download the latest CSF Organizational Profile template spreadsh"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.2525811195373535,
+          "snippet": "Guide to Creating CSF 2.0 Community Profiles for more information on creating and using Community Profiles. 2. NIST Orga"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.2677249312400818,
+          "snippet": "learn more, see SP 800-37 about organization-wide risk management tasks in the Prepare Step. IR 8286B offers information"
+        }
+      ]
+    },
+    {
+      "id": "csf-supply-chain-pub",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "800-161"
+      ],
+      "hit": 0,
+      "rank": null,
+      "doc_top1": 0,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "top1_distance": 0.3060569167137146,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.3060569167137146,
+          "snippet": "ent 18 This guidance is applied in SP 800-37r2 through several tasks within the Prepare step, including Task P-2, Risk M"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.32045507431030273,
+          "snippet": "al Institute of Standards and Technology, Gaithersburg, MD), NIST Special Publication (SP) NIST SP 800-39. https://doi.o"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.32736098766326904,
+          "snippet": ".org/10.6028/NIST.IR.8286r1 December 2025 U. S. Department of Commerce Howard Lutnick, Secretary National Institute of S"
+        }
+      ]
+    },
+    {
+      "id": "csf-privacy-pram",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.CSWP.29.pdf",
+      "expect_contains": [
+        "PRAM"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.34472978115081787,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.34472978115081787,
+          "snippet": "aspects of cybersecurity and privacy risks. Additionally, NIST\u2019s Privacy Risk Assessment Methodology (PRAM) h as a catal"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.37736719846725464,
+          "snippet": "(SP) NIST SP 800-30r1. https://doi.org/10.6028/NIST.SP.800-30r1 [16] Joint Task Force (2018) Risk Management Framework f"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.37759721279144287,
+          "snippet": "al Institute of Standards and Technology, Gaithersburg, MD), NIST Special Publication (SP) NIST SP 800-39. https://doi.o"
+        }
+      ]
+    },
+    {
+      "id": "erm-integration-authority",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.IR.8286r1.pdf",
+      "expect_contains": [
+        "enterprise risk"
+      ],
+      "hit": 1,
+      "rank": 2,
+      "doc_top1": 1,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "top1_distance": 0.27100175619125366,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.27100175619125366,
+          "snippet": "hould consider the influence of cybersecurity risks on achieving enterprise strategic, operations, reporting, and compli"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.2784959673881531,
+          "snippet": "ce the quality of the risk information provided to ERM. This would also promote better management of cybersecurity risk "
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.2848474979400635,
+          "snippet": "isks facing an enterprise, \u2022 Determining how best to address those risks, and \u2022 Ensuring that the necessary actions occu"
+        }
+      ]
+    },
+    {
+      "id": "risk-register",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.IR.8286r1.pdf",
+      "expect_contains": [
+        "risk register"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "top1_distance": 0.24580204486846924,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.24580204486846924,
+          "snippet": "ks by deterring, detecting, preventing, or correcting threats and vulnerabilities. Fig. 4 shows a notional cybersecurity"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.2846989035606384,
+          "snippet": "management and communication of cybersecurity risk. Throughout the risk management steps in Fig. 2, the use of cybersecu"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.2930281162261963,
+          "snippet": "ey are currently using. Their use as a shared organizing method for cybersecurity risk ensures seamless communication wi"
+        }
+      ]
+    },
+    {
+      "id": "risk-appetite-tolerance",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.IR.8286r1.pdf",
+      "expect_contains": [
+        "risk appetite",
+        "risk tolerance"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "top1_distance": 0.32980823516845703,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.32980823516845703,
+          "snippet": "isk tolerance\u201d to collectively refer to what this publication differentiates into two terms: \u201crisk tolerance\u201d and \u201crisk "
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.4012743830680847,
+          "snippet": ". For federal entities, risk tolerance represents \u201cthe acceptable level of variance in performance relative to the achie"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.4036986231803894,
+          "snippet": "egarding risk appetite and risk tolerance, and those tolerance statements should have clear and measurable boundaries wh"
+        }
+      ]
+    },
+    {
+      "id": "absent-gdpr-fines",
+      "modality": "text",
+      "is_negative": true,
+      "is_hard": false,
+      "expect_document": null,
+      "expect_contains": [],
+      "hit": null,
+      "rank": null,
+      "doc_top1": null,
+      "top1_doc": "NIST.IR.8286r1.pdf",
+      "top1_distance": 0.6055930852890015,
+      "abstained": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.6055930852890015,
+          "snippet": "ces (e.g., weak or reused passwords) that could lead to the disclosure of sensitive customer financial information and t"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.6464393734931946,
+          "snippet": "oses the company to fines, penalties, and legal fees Compliance Risk OpEx M CapEx L H L M M \u2022 Create and maintain a cent"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.6793258786201477,
+          "snippet": "2. IR 8286B [25] covers this topic in greater detail. A cybersecurity risk can adversely affect organizational objective"
+        }
+      ]
+    },
+    {
+      "id": "absent-kubernetes",
+      "modality": "text",
+      "is_negative": true,
+      "is_hard": false,
+      "expect_document": null,
+      "expect_contains": [],
+      "hit": null,
+      "rank": null,
+      "doc_top1": null,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.7395482063293457,
+      "abstained": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.7395482063293457,
+          "snippet": "o designated internal and external stakeholders o RC.CO-04: Public updates on incident recovery are shared using approve"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.7401448488235474,
+          "snippet": "ocess for managing exposure to cybersecurity risk throughout supply chains and developing appropriate response strategie"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.7423895597457886,
+          "snippet": "ate with the cybersecurity risk strategy, roles, responsibilities, and policies o GV.RR-04: Cybersecurity is included in"
+        }
+      ]
+    },
+    {
+      "id": "img-q3-units",
+      "modality": "image",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "ocr_test_document.pdf",
+      "expect_contains": [
+        "42"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "ocr_test_document.pdf",
+      "top1_distance": 0.2657383680343628,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "ocr_test_document.pdf",
+          "distance": 0.2657383680343628,
+          "snippet": "The image is a bar chart titled \"Quarterly Performance\" with the y-axis labeled \"Units Sold\" ranging from 0 to 50. There"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.7473710775375366,
+          "snippet": "The image is a vertical flowchart titled \"Implement.\" It consists of four blue rectangular boxes connected by arrows poi"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.7561456561088562,
+          "snippet": "The image is a vertical flowchart titled \"Assess.\" It contains five connected boxes with arrows pointing upward between "
+        }
+      ]
+    },
+    {
+      "id": "img-q1-units",
+      "modality": "image",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "ocr_test_document.pdf",
+      "expect_contains": [
+        "15"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "ocr_test_document.pdf",
+      "top1_distance": 0.32879871129989624,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "ocr_test_document.pdf",
+          "distance": 0.32879871129989624,
+          "snippet": "The image is a bar chart titled \"Quarterly Performance\" with the y-axis labeled \"Units Sold\" ranging from 0 to 50. There"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.6871442794799805,
+          "snippet": "The image is a vertical flowchart titled \"Implement.\" It consists of four blue rectangular boxes connected by arrows poi"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.IR.8286r1.pdf",
+          "distance": 0.6891271471977234,
+          "snippet": "This image is a line chart titled \"Cybersecurity Risk Loss Exceedance Curve.\" The x-axis is labeled \"Total Loss ($ Milli"
+        }
+      ]
+    },
+    {
+      "id": "qsg-small-business-audience",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.SP.1300.pdf",
+      "expect_contains": [
+        "small business"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.SP.1300.pdf",
+      "top1_distance": 0.27916866540908813,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.SP.1300.pdf",
+          "distance": 0.27916866540908813,
+          "snippet": "Standards and Technology Small Business Quick-Start Guide NIST Special Publication NIST SP 1300 https://doi.org/10.6028/"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1300.pdf",
+          "distance": 0.29393988847732544,
+          "snippet": "y using the NIST Cybersecurity Framework (CSF) 2.0. The guide also can assist other relatively small organizations, such"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1299.pdf",
+          "distance": 0.3209635019302368,
+          "snippet": "about various CSF topics) FAQs (see what others are asking and get answers to top questions) Explore the suite of NIST\u2019s"
+        }
+      ]
+    },
+    {
+      "id": "qsg-profiles-guide",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": false,
+      "expect_document": "NIST.SP.1301.pdf",
+      "expect_contains": [
+        "Organizational Profile"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.SP.1301.pdf",
+      "top1_distance": 0.32748764753341675,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.32748764753341675,
+          "snippet": "tart Guide for Creating and Using Organizational Profiles NIST Special Publication NIST SP 1301 https://doi.org/10.6028/"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.3675796389579773,
+          "snippet": "leads to refinements in the Target Profile to be used during the next assessment. Drive Progress Over Time Create and Us"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.3790881633758545,
+          "snippet": "Policies, Processes, and Procedures \u2022 Roles and Responsibilities Selected from: \u2022 Informative References - standards, gu"
+        }
+      ]
+    },
+    {
+      "id": "profile-steps-practical",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.SP.1301.pdf",
+      "expect_contains": [
+        "Target Profile"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 0,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.33934658765792847,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.33934658765792847,
+          "snippet": "selected CSF outcomes, and document the needed information. Consider the risk implications of the Current Profile to inf"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.3564966320991516,
+          "snippet": "cess compares an aspirational Target Profile to an assessed Current Profile. Then, a gap analysis is performed, and an a"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.3833068609237671,
+          "snippet": "Guide to Creating CSF 2.0 Community Profiles for more information on creating and using Community Profiles. 2. NIST Orga"
+        }
+      ]
+    },
+    {
+      "id": "gap-analysis",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.SP.1301.pdf",
+      "expect_contains": [
+        "gap"
+      ],
+      "hit": 1,
+      "rank": 1,
+      "doc_top1": 1,
+      "top1_doc": "NIST.SP.1301.pdf",
+      "top1_distance": 0.31423842906951904,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.31423842906951904,
+          "snippet": "anization to find gaps and develop a prioritized action plan for addressing those gaps. Using Profiles in this manner he"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3699968457221985,
+          "snippet": "the current or target cybersecurity posture of part or all of an organization, determine gaps, and assess progress towar"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.SP.1300.pdf",
+          "distance": 0.3703764081001282,
+          "snippet": "target cybersecurity posture in terms of the CSF Core\u2019s cybersecurity outcomes. Every Organizational Profile includes on"
+        }
+      ]
+    },
+    {
+      "id": "csf-online-resources",
+      "modality": "text",
+      "is_negative": false,
+      "is_hard": true,
+      "expect_document": "NIST.SP.1299.pdf",
+      "expect_contains": [
+        "Informative Reference"
+      ],
+      "hit": 1,
+      "rank": 4,
+      "doc_top1": 0,
+      "top1_doc": "NIST.CSWP.29.pdf",
+      "top1_distance": 0.3427703380584717,
+      "abstained": false,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.3427703380584717,
+          "snippet": "e CSF assists its users in learning about and selecting specific outcomes. Suggestions for how specific outcomes may be "
+        },
+        {
+          "rank": 2,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.35455232858657837,
+          "snippet": "es. The QSGs suggest initial ways to use the CSF and invite the reader to explore the CSF and related resources in great"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.35747307538986206,
+          "snippet": "......................6 4. Introduction to Online Resources That Supplement the CSF ...................................."
+        }
+      ]
+    },
+    {
+      "id": "absent-soc2",
+      "modality": "text",
+      "is_negative": true,
+      "is_hard": false,
+      "expect_document": null,
+      "expect_contains": [],
+      "hit": null,
+      "rank": null,
+      "doc_top1": null,
+      "top1_doc": "NIST.SP.1301.pdf",
+      "top1_distance": 0.536879301071167,
+      "abstained": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document": "NIST.SP.1301.pdf",
+          "distance": 0.536879301071167,
+          "snippet": "Framework for Information Systems & Organizations NIST SP 800-53 Revision 5, Security and Privacy Controls for Informati"
+        },
+        {
+          "rank": 2,
+          "document": "NIST.SP.1299.pdf",
+          "distance": 0.546836256980896,
+          "snippet": "CSF 2.0 is comprised of: \u2022 CSF Core - A taxonomy of high-level cybersecurity outcomes that can help any organization man"
+        },
+        {
+          "rank": 3,
+          "document": "NIST.CSWP.29.pdf",
+          "distance": 0.5524304509162903,
+          "snippet": "anage cybersecurity risks. It offers a taxonomy of high- level cybersecurity outcomes that can be used by any organizati"
+        }
+      ]
+    }
+  ]
+}

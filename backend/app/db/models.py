@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDMixin
@@ -14,6 +14,13 @@ class MessageRole(enum.StrEnum):
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
+
+
+class ResearchTaskStatus(enum.StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class DocumentSourceType(enum.StrEnum):
@@ -81,12 +88,21 @@ class Conversation(UUIDMixin, TimestampMixin, Base):
     messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation",
         cascade="all, delete-orphan",
-        order_by="Message.created_at",
+        # Order by the explicit per-conversation ordinal, not created_at: both
+        # messages of a turn commit in one transaction and Postgres now() returns
+        # transaction-start time, so they share created_at and would sort
+        # non-deterministically.
+        order_by="Message.position",
     )
 
 
 class Message(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "messages"
+    # Position is the sole source of intra-conversation order. The UNIQUE
+    # constraint makes a duplicate position raise IntegrityError immediately
+    # rather than silently reintroducing the non-deterministic ordering this
+    # column exists to fix; it also serves as the index for ORDER BY position.
+    __table_args__ = (UniqueConstraint("conversation_id", "position"),)
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("conversations.id", ondelete="CASCADE"),
@@ -97,6 +113,11 @@ class Message(UUIDMixin, TimestampMixin, Base):
         Enum(MessageRole, native_enum=False, length=20), nullable=False
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 0-based ordinal within the conversation; assigned as max(position)+1.
+    position: Mapped[int] = mapped_column(nullable=False)
+    # Assistant-message citations as JSON (Citation.model_dump); NULL for user
+    # messages and [] for an abstention turn (a real turn with no sources).
+    citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
@@ -131,6 +152,33 @@ class Document(UUIDMixin, TimestampMixin, Base):
     )
 
 
+class ResearchTask(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "research_tasks"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    topic: Mapped[str] = mapped_column(Text, nullable=False)
+    # Optional retrieval override captured at request time; the endpoint enforces
+    # the RAG_MAX_TOP_K bound before persisting. Stored because the request
+    # context is gone by the time the background runner builds ResearchState.
+    k: Mapped[int | None] = mapped_column(nullable=True)
+    status: Mapped[ResearchTaskStatus] = mapped_column(
+        Enum(ResearchTaskStatus, native_enum=False, length=20),
+        default=ResearchTaskStatus.PENDING,
+        nullable=False,
+    )
+    # The serialised ResearchResponse (model_dump(mode="json")); NULL until the
+    # run finishes. A recorded PIPELINE failure — the orchestrator setting
+    # state.error — is a COMPLETED task carrying that error INSIDE result, which
+    # preserves the "a failed run is still the resource" semantics of the old
+    # synchronous endpoint. The `error` column below is different: it is reserved
+    # for INFRASTRUCTURE failure (the runner itself raised), which sets status
+    # FAILED and leaves result NULL. The frontend distinguishes these two.
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class DocumentChunk(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "document_chunks"
 
@@ -155,5 +203,8 @@ class DocumentImage(UUIDMixin, TimestampMixin, Base):
     # position within the document, across all pages, starting at 0
     image_index: Mapped[int] = mapped_column(nullable=False)
     storage_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    # vision-generated description that makes the image semantically findable;
+    # NULL means the image has not been captioned yet
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     document: Mapped["Document"] = relationship(back_populates="images")

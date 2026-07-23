@@ -29,6 +29,12 @@ class EmbeddingProvider(Protocol):
         ...
 
 
+# OpenAI's embeddings endpoint caps each request at 2048 inputs and ~300k
+# tokens; batch conservatively on both so large documents don't 400.
+_MAX_BATCH_ITEMS = 1000
+_MAX_BATCH_CHARS = 800_000  # ~200k tokens at ~4 chars/token
+
+
 class OpenAIEmbeddingProvider:
     """Embeddings backed by OpenAI's text-embedding-3 models."""
 
@@ -45,6 +51,23 @@ class OpenAIEmbeddingProvider:
         # Skip the network round-trip on empty input; the API would reject it.
         if not texts:
             return []
+        vectors: list[list[float]] = []
+        batch: list[str] = []
+        batch_chars = 0
+        for text in texts:
+            if batch and (
+                len(batch) >= _MAX_BATCH_ITEMS
+                or batch_chars + len(text) > _MAX_BATCH_CHARS
+            ):
+                vectors.extend(await self._embed_batch(batch))
+                batch, batch_chars = [], 0
+            batch.append(text)
+            batch_chars += len(text)
+        if batch:
+            vectors.extend(await self._embed_batch(batch))
+        return vectors
+
+    async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         response = await self._client.embeddings.create(
             model=self._model, input=texts, dimensions=self._dimension
         )
