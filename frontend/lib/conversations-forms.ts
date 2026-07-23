@@ -11,3 +11,12 @@ export function mapDeleteConversationError(err: unknown): string {
   }
   return "Couldn't delete the conversation. Please try again.";
 }
+
+// Create failures surface as the TURN's error state (the hook renders a thrown
+// ensure Error's message), so this copy reads as a failed answer start.
+export function mapCreateConversationError(err: unknown): string {
+  if (err instanceof RateLimitError) {
+    return "Too many attempts. Please wait a minute.";
+  }
+  return "Couldn't start the conversation. Please try again.";
+}

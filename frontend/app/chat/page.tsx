@@ -1,8 +1,9 @@
 "use client";
 
-// New-chat surface. No key and no initialTurns: a fresh mount, empty
-// transcript. Route protection and the sidebar live in the chat layout.
-// Chat.3a: sends are stateless; the lazy conversation create is Chat.3b.
+// New-chat surface. No key, no conversationId, no initialTurns: a fresh mount
+// with an empty transcript. The conversation is created lazily on the first
+// send (ChatView), and the URL becomes /chat/{id} via replaceState without a
+// remount. Route protection and the sidebar live in the chat layout.
 
 import { ChatView } from "@/components/chat-view";
 

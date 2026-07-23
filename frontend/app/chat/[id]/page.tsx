@@ -47,5 +47,11 @@ export default function ConversationPage() {
     );
   }
 
-  return <ChatView key={id} initialTurns={mapMessagesToTurns(data.messages)} />;
+  return (
+    <ChatView
+      key={id}
+      conversationId={id}
+      initialTurns={mapMessagesToTurns(data.messages)}
+    />
+  );
 }

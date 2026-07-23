@@ -9,14 +9,21 @@
 // live conversation id is internal state and must NEVER back the key: feeding
 // it in would remount this view mid-first-send and abort its own stream.
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useChat, type ChatTurn } from "@/hooks/use-chat";
+import { useCreateConversation } from "@/hooks/use-create-conversation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { mapCreateConversationError } from "@/lib/conversations-forms";
 import type { Citation } from "@/types/api";
+
+// Conversation titles are the first question, truncated (backend cap is 255;
+// 60 keeps the sidebar readable).
+const TITLE_MAX_CHARS = 60;
 
 // Numbered to match the answer's emergent [n] markers: the citations array
 // order IS the numbered-passage order the prompt was built from.
@@ -47,6 +54,15 @@ function TurnView({ turn }: { turn: ChatTurn }) {
       <div className="max-w-[85%] self-end rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
         {turn.question}
       </div>
+      {turn.rewritten_question != null &&
+        turn.rewritten_question !== turn.question && (
+          // The standalone question retrieval actually used (follow-up rewrite).
+          // Shown only when it differs; non-null-but-identical means "the
+          // rewrite ran and changed nothing" — no badge for that.
+          <p className="max-w-[85%] self-end text-xs text-muted-foreground">
+            Searched for: {turn.rewritten_question}
+          </p>
+        )}
       <Card className="max-w-[85%] self-start py-0">
         <CardContent className="px-4 py-3">
           {turn.status === "abstained" ? (
@@ -80,18 +96,20 @@ function TurnView({ turn }: { turn: ChatTurn }) {
 }
 
 function Composer({
-  disabled,
+  isStreaming,
   onSend,
+  onStop,
 }: {
-  disabled: boolean;
+  isStreaming: boolean;
   onSend: (question: string) => void;
+  onStop: () => void;
 }) {
   const [question, setQuestion] = useState("");
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const q = question.trim();
-    if (!q || disabled) return;
+    if (!q || isStreaming) return;
     onSend(q);
     setQuestion("");
   }
@@ -102,18 +120,89 @@ function Composer({
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="Ask a question about your documents…"
-        disabled={disabled}
+        disabled={isStreaming}
         autoFocus
       />
-      <Button type="submit" disabled={disabled || !question.trim()}>
-        {disabled ? "Answering…" : "Send"}
-      </Button>
+      {isStreaming ? (
+        // Stop stays ENABLED while the input is locked — a user-initiated stop
+        // lands in the "cancelled" bucket, never rendered as a failure.
+        <Button type="button" variant="outline" onClick={onStop}>
+          Stop
+        </Button>
+      ) : (
+        <Button type="submit" disabled={!question.trim()}>
+          Send
+        </Button>
+      )}
     </form>
   );
 }
 
-export function ChatView({ initialTurns }: { initialTurns?: ChatTurn[] }) {
-  const { turns, isStreaming, send } = useChat(initialTurns);
+export function ChatView({
+  conversationId,
+  initialTurns,
+}: {
+  conversationId?: string;
+  initialTurns?: ChatTurn[];
+}) {
+  const { turns, isStreaming, send, stop } = useChat(initialTurns);
+  const queryClient = useQueryClient();
+  const createMutation = useCreateConversation();
+
+  // The LIVE conversation id: request bodies + replaceState ONLY — it must
+  // never back a React key (see the keying contract above). A ref, not state:
+  // nothing renders from it. Starts as the mount identity when there is one.
+  const liveIdRef = useRef<string | null>(conversationId ?? null);
+  // Single-flight create: a concurrent first send must never create TWO
+  // conversations (same hazard class as the token-refresh single-flight; the
+  // disabled composer is too thin a guard for a server-side side effect).
+  const createPromiseRef = useRef<Promise<string> | null>(null);
+
+  function ensureConversationId(
+    question: string,
+    signal: AbortSignal,
+  ): Promise<string> {
+    if (liveIdRef.current) return Promise.resolve(liveIdRef.current);
+    if (!createPromiseRef.current) {
+      createPromiseRef.current = (async () => {
+        try {
+          const conv = await createMutation.mutateAsync({
+            title: question.slice(0, TITLE_MAX_CHARS),
+            signal,
+          });
+          liveIdRef.current = conv.id;
+          // The URL now reads /chat/{id} while the mount identity stays as it
+          // was — deliberate: replaceState integrates with the Next router
+          // (usePathname syncs, sidebar highlight moves) WITHOUT a remount, so
+          // the stream this send is about to start survives. Resolves at the
+          // next real navigation or reload.
+          window.history.replaceState(null, "", `/chat/${conv.id}`);
+          return conv.id;
+        } catch (err) {
+          if (signal.aborted) throw err; // abort is routed to "cancelled" upstream
+          // Hook contract: a thrown ensure Error carries display-ready copy.
+          throw new Error(mapCreateConversationError(err));
+        } finally {
+          createPromiseRef.current = null;
+        }
+      })();
+    }
+    return createPromiseRef.current;
+  }
+
+  async function handleSend(question: string) {
+    const status = await send(question, (signal) =>
+      ensureConversationId(question, signal),
+    );
+    // Split invalidation: the LIST refreshed at create time (mutation
+    // onSuccess). The DETAIL refreshes only after a turn the backend actually
+    // PERSISTED (done/abstained); error/cancelled persist nothing server-side,
+    // so the cached detail is still accurate.
+    const id = liveIdRef.current;
+    if (id && (status === "done" || status === "abstained")) {
+      queryClient.invalidateQueries({ queryKey: ["conversations", id] });
+    }
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8">
@@ -130,9 +219,10 @@ export function ChatView({ initialTurns }: { initialTurns?: ChatTurn[] }) {
         )}
       </div>
       <div className="sticky bottom-0 mt-6 bg-background py-4">
-        {/* Chat.3a: sends are still STATELESS (no conversation_id) on both
-            routes — the live turn joins the session in Chat.3b. */}
-        <Composer disabled={isStreaming} onSend={send} />
+        {/* Every send belongs to a conversation (created lazily on the first
+            send of a fresh /chat). The stateless endpoint mode still exists on
+            the backend; the UI no longer uses it. */}
+        <Composer isStreaming={isStreaming} onSend={handleSend} onStop={stop} />
       </div>
     </main>
   );

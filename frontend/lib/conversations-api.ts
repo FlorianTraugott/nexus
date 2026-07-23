@@ -28,11 +28,15 @@ export async function getConversation(id: string): Promise<ConversationDetail> {
 }
 
 /** POST /conversations -> 201 ConversationRead. Title optional (backend
- *  defaults to "New conversation"). Used by Chat.3b's lazy create-on-first-send. */
+ *  defaults to "New conversation"). The optional signal lets the lazy
+ *  create-on-first-send be aborted with the turn it belongs to. */
 export async function createConversation(
   payload: ConversationCreate = {},
+  signal?: AbortSignal,
 ): Promise<ConversationRead> {
-  const { data } = await api.post<ConversationRead>(CONVERSATIONS, payload);
+  const { data } = await api.post<ConversationRead>(CONVERSATIONS, payload, {
+    signal,
+  });
   return data;
 }
 
