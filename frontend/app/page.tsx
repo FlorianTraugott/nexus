@@ -29,6 +29,7 @@ const FEATURES: { title: string; description: string; href?: string }[] = [
   {
     title: "Research",
     description: "Run the multi-agent research pipeline.",
+    href: "/research",
   },
 ];
 

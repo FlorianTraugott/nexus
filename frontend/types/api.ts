@@ -157,3 +157,102 @@ export interface ConversationRead {
 export interface ConversationDetail extends ConversationRead {
   messages: MessageRead[];
 }
+
+/** app/db/models.py :: ResearchTaskStatus — pending -> running -> completed | failed */
+export type ResearchTaskStatus = "pending" | "running" | "completed" | "failed";
+
+/** app/schemas/research.py :: ResearchStage */
+export type ResearchStage =
+  | "web_search"
+  | "kb_query"
+  | "summarise"
+  | "report"
+  | "done";
+
+/** app/schemas/research.py :: WebSearchHit */
+export interface WebSearchHit {
+  title: string;
+  url: string;
+  snippet: string;
+  score: number | null; // provider relevance when available
+}
+
+/** app/schemas/research.py :: WebSearchFindings */
+export interface WebSearchFindings {
+  query: string;
+  hits: WebSearchHit[];
+}
+
+/** app/schemas/research.py :: KBFinding — deliberate SIBLING of Citation
+ *  (same shape, decoupled type — mirrors the backend's decoupling). */
+export interface KBFinding {
+  chunk_id: string;
+  document_id: string;
+  chunk_index: number;
+  distance: number; // cosine distance: LOWER is more relevant
+  content_preview: string;
+}
+
+/** app/schemas/research.py :: KBFindings */
+export interface KBFindings {
+  query: string;
+  findings: KBFinding[];
+}
+
+/** app/schemas/research.py :: Summary */
+export interface Summary {
+  key_points: string[];
+  abstract: string;
+}
+
+/** app/schemas/research.py :: ReportSection */
+export interface ReportSection {
+  heading: string;
+  body: string;
+}
+
+/** app/schemas/research.py :: ResearchReport */
+export interface ResearchReport {
+  title: string;
+  sections: ReportSection[];
+  markdown: string;
+}
+
+/** app/schemas/research.py :: ResearchRequest — POST /research body */
+export interface ResearchRequest {
+  topic: string;
+  k?: number | null;
+}
+
+/** app/schemas/research.py :: ResearchResponse — the completed run. A recorded
+ *  PIPELINE failure rides here as non-null `error` with `report` null. */
+export interface ResearchResponse {
+  topic: string;
+  stage: ResearchStage;
+  web: WebSearchFindings | null;
+  kb: KBFindings | null;
+  summary: Summary | null;
+  report: ResearchReport | null;
+  warnings: string[];
+  error: string | null;
+}
+
+/** app/schemas/research.py :: ResearchTaskCreated — POST /research 202 body */
+export interface ResearchTaskCreated {
+  task_id: string;
+  status: ResearchTaskStatus;
+}
+
+/** app/schemas/research.py :: ResearchTaskRead — the poll envelope.
+ *  result stays null until the run finishes. PIPELINE failure = status
+ *  "completed" with the error INSIDE result.error; the top-level `error` is
+ *  populated only on INFRASTRUCTURE failure (status "failed", result null). */
+export interface ResearchTaskRead {
+  task_id: string;
+  topic: string;
+  status: ResearchTaskStatus;
+  result: ResearchResponse | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
