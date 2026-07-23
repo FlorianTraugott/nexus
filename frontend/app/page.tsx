@@ -19,6 +19,7 @@ const FEATURES: { title: string; description: string; href?: string }[] = [
   {
     title: "Chat",
     description: "Ask questions grounded in your documents.",
+    href: "/chat",
   },
   {
     title: "Documents",
