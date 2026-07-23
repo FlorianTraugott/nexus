@@ -85,7 +85,7 @@ async def _load_counts(
 
 
 async def ensure_document(
-    session: AsyncSession, user: User, pdf_path: Path, *, force: bool = False
+    session: AsyncSession, user_id: uuid.UUID, pdf_path: Path, *, force: bool = False
 ) -> DocResult:
     """Create-and-ingest, re-ingest, or skip one corpus PDF, idempotently.
 
@@ -95,21 +95,21 @@ async def ensure_document(
     """
     filename = pdf_path.name
     existing = {
-        d.filename: d for d in await document_repo.list_user_documents(session, user.id)
+        d.filename: d for d in await document_repo.list_user_documents(session, user_id)
     }
     doc = existing.get(filename)
 
     include_images = True
     if doc is not None and doc.status == DocumentStatus.COMPLETED:
         if not force:
-            chunks, total, captioned = await _load_counts(session, doc.id, user.id)
+            chunks, total, captioned = await _load_counts(session, doc.id, user_id)
             return DocResult(filename, "skipped", chunks, total, captioned)
         # Forced re-chunk of a healthy document: leave images/captions alone.
         include_images = False
 
     if doc is None:
         doc = await document_repo.create_document(
-            session, user.id, filename, DocumentSourceType.PDF
+            session, user_id, filename, DocumentSourceType.PDF
         )
         content = pdf_path.read_bytes()
         await storage.save_file(storage.document_path(doc.id, filename), content)
@@ -123,7 +123,11 @@ async def ensure_document(
     # exactly as the HTTP upload handler schedules it as a background task.
     await ingest_document(document_id, include_images=include_images)
 
-    chunks, total, captioned = await _load_counts(session, document_id, user.id)
+    # The ingest ran in its OWN session; this session's identity map still holds
+    # the pre-ingest row, so expire it or the summary reports STALE chunk counts
+    # (caught in the chunking sweep: V1 re-chunked to 626 but printed 455).
+    session.expire_all()
+    chunks, total, captioned = await _load_counts(session, document_id, user_id)
     return DocResult(filename, action, chunks, total, captioned)
 
 
@@ -153,7 +157,11 @@ async def main() -> None:
                 f"Refusing --reingest: {settings.EVAL_USER_EMAIL} is not the "
                 "script-created eval account (password hash mismatch)."
             )
-        print(f"Eval user: {settings.EVAL_USER_EMAIL} ({user.id})")
+        # Plain UUID captured BEFORE any expire_all: expired ORM attribute
+        # access is a sync lazy-refresh, which raises MissingGreenlet under
+        # the async session (bit us mid-sweep). Values are safe; objects are not.
+        user_id = user.id
+        print(f"Eval user: {settings.EVAL_USER_EMAIL} ({user_id})")
         print(f"Corpus:    {CORPUS_DIR} ({len(pdfs)} PDFs)")
         print(f"Chunking:  size={settings.CHUNK_SIZE} overlap={settings.CHUNK_OVERLAP}")
         if args.reingest:
@@ -164,7 +172,7 @@ async def main() -> None:
         for pdf in pdfs:
             print(f"  processing {pdf.name} ...", flush=True)
             results.append(
-                await ensure_document(session, user, pdf, force=args.reingest)
+                await ensure_document(session, user_id, pdf, force=args.reingest)
             )
 
     created = sum(1 for r in results if r.action == "created")
