@@ -12,8 +12,18 @@ Idempotent by design. A document is keyed by filename under the eval user:
 So re-running never duplicates documents, and a previously failed/partial ingest
 self-heals. This script only READS from the ingestion service; it adds nothing
 to it.
+
+--reingest (the chunking-experiment path) force-re-ingests COMPLETED documents
+TEXT-ONLY (include_images=False): chunk parameters have zero effect on images,
+and captions are non-deterministic LLM output — preserving them keeps a
+same-params re-ingest exactly reproducible and burns no vision calls. The flag
+is HARD-SCOPED to the script-created eval account: it verifies the target
+user's password hash against EVAL_USER_PASSWORD and refuses anyone else, so a
+stray EVAL_USER_EMAIL pointing at a real account can never force-rebuild that
+account's chunks.
 """
 
+import argparse
 import asyncio
 import uuid
 from dataclasses import dataclass
@@ -22,7 +32,7 @@ from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.db.models import DocumentSourceType, DocumentStatus, User
 from app.db.repositories import document as document_repo
 from app.db.repositories import user as user_repo
@@ -75,18 +85,27 @@ async def _load_counts(
 
 
 async def ensure_document(
-    session: AsyncSession, user: User, pdf_path: Path
+    session: AsyncSession, user: User, pdf_path: Path, *, force: bool = False
 ) -> DocResult:
-    """Create-and-ingest, re-ingest, or skip one corpus PDF, idempotently."""
+    """Create-and-ingest, re-ingest, or skip one corpus PDF, idempotently.
+
+    force=True re-ingests even COMPLETED documents, TEXT-ONLY — the
+    chunking-experiment path. The heal path (present, not done) keeps the full
+    pipeline: an incomplete ingest may genuinely be missing captions.
+    """
     filename = pdf_path.name
     existing = {
         d.filename: d for d in await document_repo.list_user_documents(session, user.id)
     }
     doc = existing.get(filename)
 
+    include_images = True
     if doc is not None and doc.status == DocumentStatus.COMPLETED:
-        chunks, total, captioned = await _load_counts(session, doc.id, user.id)
-        return DocResult(filename, "skipped", chunks, total, captioned)
+        if not force:
+            chunks, total, captioned = await _load_counts(session, doc.id, user.id)
+            return DocResult(filename, "skipped", chunks, total, captioned)
+        # Forced re-chunk of a healthy document: leave images/captions alone.
+        include_images = False
 
     if doc is None:
         doc = await document_repo.create_document(
@@ -102,13 +121,21 @@ async def ensure_document(
     document_id = doc.id
     # ingest_document opens its own session; the row above is already committed,
     # exactly as the HTTP upload handler schedules it as a background task.
-    await ingest_document(document_id)
+    await ingest_document(document_id, include_images=include_images)
 
     chunks, total, captioned = await _load_counts(session, document_id, user.id)
     return DocResult(filename, action, chunks, total, captioned)
 
 
 async def main() -> None:
+    arg_parser = argparse.ArgumentParser(description="Eval corpus setup")
+    arg_parser.add_argument(
+        "--reingest",
+        action="store_true",
+        help="force text-only re-ingest of COMPLETED docs (chunking experiments)",
+    )
+    args = arg_parser.parse_args()
+
     settings = get_settings()
     pdfs = sorted(CORPUS_DIR.glob("*.pdf"))
     if not pdfs:
@@ -116,13 +143,29 @@ async def main() -> None:
 
     async with AsyncSessionLocal() as session:
         user = await get_or_create_eval_user(session)
+        if args.reingest and not verify_password(
+            EVAL_USER_PASSWORD, user.hashed_password
+        ):
+            # --reingest force-deletes and rebuilds chunks; it must be
+            # impossible to point it at a real account. Ownership proof: only
+            # the account THIS SCRIPT created carries the known eval password.
+            raise SystemExit(
+                f"Refusing --reingest: {settings.EVAL_USER_EMAIL} is not the "
+                "script-created eval account (password hash mismatch)."
+            )
         print(f"Eval user: {settings.EVAL_USER_EMAIL} ({user.id})")
-        print(f"Corpus:    {CORPUS_DIR} ({len(pdfs)} PDFs)\n")
+        print(f"Corpus:    {CORPUS_DIR} ({len(pdfs)} PDFs)")
+        print(f"Chunking:  size={settings.CHUNK_SIZE} overlap={settings.CHUNK_OVERLAP}")
+        if args.reingest:
+            print("Mode:      FORCED text-only re-ingest (images/captions preserved)")
+        print()
 
         results: list[DocResult] = []
         for pdf in pdfs:
             print(f"  processing {pdf.name} ...", flush=True)
-            results.append(await ensure_document(session, user, pdf))
+            results.append(
+                await ensure_document(session, user, pdf, force=args.reingest)
+            )
 
     created = sum(1 for r in results if r.action == "created")
     reingested = sum(1 for r in results if r.action == "reingested")

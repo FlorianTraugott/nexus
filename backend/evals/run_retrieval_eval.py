@@ -244,7 +244,12 @@ def _print_negatives(
     print("  (compare: do negatives sit at clearly larger distances?)")
 
 
-def build_report(results: list[QResult], k: int, max_distance: float) -> dict[str, Any]:
+def build_report(
+    results: list[QResult],
+    k: int,
+    max_distance: float,
+    chunking: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     answerable = [r for r in results if not r.q.is_negative]
     negatives = [r for r in results if r.q.is_negative]
     answerable_top1 = [
@@ -260,6 +265,13 @@ def build_report(results: list[QResult], k: int, max_distance: float) -> dict[st
         "generated_at": datetime.now(UTC).isoformat(),
         "k": k,
         "rag_max_distance": max_distance,
+        # Chunking provenance for run-to-run comparison. chunk_size/overlap are
+        # the RUNNER's settings, not stored provenance (the DB keeps no record
+        # of the params a corpus was chunked with) — run this eval under the
+        # SAME CHUNK_* env as the setup that built the corpus, or this label
+        # lies. total_chunks IS read from the corpus and is the tell for
+        # chunk-count inflation (see the metric-gaming note in the ledger).
+        "chunking": chunking,
         "n_questions": len(results),
         "n_answerable": len(answerable),
         "n_negative": len(negatives),
@@ -378,9 +390,12 @@ async def main() -> None:
                 f"Eval user {settings.EVAL_USER_EMAIL} not found — "
                 "run: python -m evals.setup_eval_corpus"
             )
-        doc_map = {
-            d.id: d.filename
-            for d in await document_repo.list_user_documents(session, user.id)
+        docs = await document_repo.list_user_documents(session, user.id)
+        doc_map = {d.id: d.filename for d in docs}
+        chunking = {
+            "chunk_size": settings.CHUNK_SIZE,
+            "chunk_overlap": settings.CHUNK_OVERLAP,
+            "total_chunks": sum(d.chunk_count for d in docs),
         }
 
         results: list[QResult] = []
@@ -388,7 +403,7 @@ async def main() -> None:
             hits = await _hits_for(session, q, user.id, k, doc_map)
             results.append(score(q, hits))
 
-    report = build_report(results, k, settings.RAG_MAX_DISTANCE)
+    report = build_report(results, k, settings.RAG_MAX_DISTANCE, chunking)
     print_report(results, report)
 
     if args.json is not None:

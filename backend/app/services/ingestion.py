@@ -30,10 +30,12 @@ from app.services.vector_store import (
 log = get_logger(__name__)
 
 
-async def ingest_document(document_id: uuid.UUID) -> None:
+async def ingest_document(
+    document_id: uuid.UUID, *, include_images: bool = True
+) -> None:
     """Entry point for the background task; owns its own session."""
     async with AsyncSessionLocal() as session:
-        await run_ingestion(session, document_id)
+        await run_ingestion(session, document_id, include_images=include_images)
 
 
 async def run_ingestion(
@@ -42,6 +44,8 @@ async def run_ingestion(
     embedder: EmbeddingProvider | None = None,
     store: VectorStore | None = None,
     image_store: VectorStore | None = None,
+    *,
+    include_images: bool = True,
 ) -> None:
     document = await document_repo.get_document(session, document_id)
     if document is None:
@@ -64,7 +68,12 @@ async def run_ingestion(
         chunk_rows = await document_repo.replace_chunks(session, document.id, chunks)
         await _index_chunks(store, embedder, document, chunk_rows)
 
-        if document.source_type == DocumentSourceType.PDF:
+        # include_images=False is the text-only re-ingest (eval re-chunking):
+        # chunk parameters have ZERO effect on images — they are extracted per
+        # page and indexed in the separate image collection — so a re-chunk must
+        # not re-extract, re-caption (non-deterministic LLM output), or re-index
+        # them. Existing image rows and their vectors stay exactly as they are.
+        if include_images and document.source_type == DocumentSourceType.PDF:
             extracted = await asyncio.to_thread(
                 image_service.extract_images, path, storage.image_dir(document.id)
             )
