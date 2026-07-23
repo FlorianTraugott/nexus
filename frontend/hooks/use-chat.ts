@@ -31,13 +31,19 @@ export interface ChatTurn {
   errorMessage?: string;
 }
 
-export function useChat() {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+// initialTurns SEED the transcript once, at mount (hydration from a persisted
+// conversation): useState reads its initializer on first render only, so a
+// caller re-rendering with different initialTurns has NO effect — deliberate,
+// a background refetch can never clobber a live transcript. Re-seeding happens
+// only by remount (the caller keys the component by its ROUTE PARAM).
+export function useChat(initialTurns: ChatTurn[] = []) {
+  const [turns, setTurns] = useState<ChatTurn[]>(initialTurns);
   const [isStreaming, setIsStreaming] = useState(false);
   // One controller per in-flight send; null when nothing is streaming. Also the
   // "one stream at a time" guard.
   const controllerRef = useRef<AbortController | null>(null);
-  const nextId = useRef(0);
+  // Hydrated turns occupy ids 0..n-1; live turns continue from n.
+  const nextId = useRef(initialTurns.length);
 
   // Abort any in-flight stream on unmount: stops the download and settles the
   // generator's finally. Safe under dev StrictMode's mount->cleanup->mount:

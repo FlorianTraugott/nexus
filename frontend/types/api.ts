@@ -122,3 +122,38 @@ export type StreamEvent =
   | StreamDone
   | StreamAbstained
   | StreamError;
+
+/** app/db/models.py :: MessageRole — "system" exists in the enum but the query
+ *  path only ever persists user/assistant pairs. */
+export type MessageRole = "user" | "assistant" | "system";
+
+/** app/schemas/conversation.py :: MessageRead — one persisted message.
+ *  NOTE: no rewritten_question and no abstention flag are stored — those exist
+ *  only on the live stream wire. */
+export interface MessageRead {
+  id: string; // uuid.UUID serialised as a string
+  role: MessageRole;
+  content: string;
+  citations: Citation[] | null; // present on assistant turns
+  position: number;
+  created_at: string; // datetime serialised as an ISO-8601 string
+}
+
+/** app/schemas/conversation.py :: ConversationCreate — POST /conversations body */
+export interface ConversationCreate {
+  title?: string | null; // 1..255 chars; backend defaults to "New conversation"
+}
+
+/** app/schemas/conversation.py :: ConversationRead */
+export interface ConversationRead {
+  id: string; // uuid.UUID serialised as a string
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** app/schemas/conversation.py :: ConversationDetail — GET /conversations/{id};
+ *  messages ordered by position. */
+export interface ConversationDetail extends ConversationRead {
+  messages: MessageRead[];
+}
