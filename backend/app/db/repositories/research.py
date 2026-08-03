@@ -3,7 +3,7 @@
 import uuid
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import ResearchTask, ResearchTaskStatus
@@ -73,6 +73,9 @@ async def sweep_running_tasks(db: AsyncSession, reason: str) -> int:
         .where(ResearchTask.status == ResearchTaskStatus.RUNNING)
         .values(status=ResearchTaskStatus.FAILED, error=reason)
     )
-    # AsyncSession.execute is typed as Result, but a Core UPDATE yields a
-    # CursorResult, which is where rowcount lives.
-    return cast("CursorResult[Any]", result).rowcount
+    # rowcount lives on CursorResult (what a Core UPDATE yields), but the stub
+    # for AsyncSession.execute disagrees across SQLAlchemy versions on whether
+    # it's exposed — pinned 2.0.36 has it, latest does not. Route through Any so
+    # both the CI (pinned) and pre-commit (latest) mypy accept it; int() keeps
+    # the return concrete for warn_return_any.
+    return int(cast(Any, result).rowcount)
