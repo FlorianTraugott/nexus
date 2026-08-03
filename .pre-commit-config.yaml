@@ -1,11 +1,8 @@
-# ════════════════════════════════════════════════════════════
-#  pre-commit — runs automatically on every `git commit`
-#  Install once with:  make hooks   (or:  pre-commit install)
-#  Run on all files:   pre-commit run --all-files
-# ════════════════════════════════════════════════════════════
+# pre-commit hooks. Runs on every `git commit`.
+# Install once with `make hooks`; run on all files with `pre-commit run --all-files`.
 
 repos:
-  # ─── Standard file hygiene ───────────────────────────────
+  # Standard file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -18,7 +15,7 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
 
-  # ─── Ruff: lint + import sorting ─────────────────────────
+  # Ruff: lint + import sorting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.2
     hooks:
@@ -28,14 +25,14 @@ repos:
       - id: ruff-format
         files: ^backend/
 
-  # ─── Black: formatting ───────────────────────────────────
+  # Black: formatting
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
         files: ^backend/
 
-  # ─── mypy: static type checking ──────────────────────────
+  # mypy: static type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
     hooks:
