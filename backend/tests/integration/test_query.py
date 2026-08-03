@@ -5,6 +5,7 @@ import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -436,3 +437,42 @@ async def test_stream_unknown_conversation_404_before_streaming(env: _Env) -> No
         headers=_auth(user_id),
     )
     assert response.status_code == 404
+
+
+async def test_query_rate_limited_per_user_and_per_endpoint(
+    env: _Env, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The limiter is disabled in the test env, so enable it with a low cap and
+    drive /query past it. Asserts three properties the ledger claims:
+      - the cap fires (429) once a user exceeds it,
+      - the bucket is per-USER (another user is unaffected),
+      - the bucket is per-ENDPOINT (/query/stream is a separate bucket, so an
+        exhausted /query does not throttle it) — the same reason /query and
+        /query/stream get SEPARATE 60/hour buckets in production.
+    """
+    from app.core.config import get_settings
+    from app.core.middleware import limiter
+
+    monkeypatch.setattr(limiter, "enabled", True)
+    monkeypatch.setattr(get_settings(), "RATE_LIMIT_QUERY", "2/hour")
+
+    user_a = await _seed_user_chunks(env, ["alpha apple", "bravo banana"])
+    user_b = await _seed_user_chunks(env, ["bravo banana"])
+    body = {"question": "find bravo", "k": 2}
+
+    # user A: two allowed, the third is throttled.
+    for _ in range(2):
+        ok = await env.client.post(QUERY, json=body, headers=_auth(user_a))
+        assert ok.status_code == 200
+    throttled = await env.client.post(QUERY, json=body, headers=_auth(user_a))
+    assert throttled.status_code == 429
+
+    # per-USER: user B has its own bucket, unaffected by A exhausting theirs.
+    other_user = await env.client.post(QUERY, json=body, headers=_auth(user_b))
+    assert other_user.status_code == 200
+
+    # per-ENDPOINT: /query/stream is a separate bucket, so A can still stream.
+    other_endpoint = await env.client.post(
+        QUERY_STREAM, json=body, headers=_auth(user_a)
+    )
+    assert other_endpoint.status_code == 200

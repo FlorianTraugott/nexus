@@ -1,5 +1,6 @@
 """End-to-end tests for the authentication flow."""
 
+import pytest
 from httpx import AsyncClient
 
 REGISTER = "/api/v1/auth/register"
@@ -71,3 +72,22 @@ async def test_refresh_rotates_and_revokes_old_token(client: AsyncClient) -> Non
         LOGOUT, json={"refresh_token": new_tokens["refresh_token"]}
     )
     assert logout.status_code == 204
+
+
+async def test_register_disabled_returns_403(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With REGISTRATION_ENABLED=false the public demo refuses new sign-ups.
+
+    The enabled path (201) is covered by the tests above; this asserts the
+    env-gated 403. get_settings() is the cached singleton, so setting the
+    attribute on it flips the flag the handler reads.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "REGISTRATION_ENABLED", False)
+    response = await client.post(
+        REGISTER, json={"email": "blocked@example.com", "password": "password123"}
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Registration is disabled"

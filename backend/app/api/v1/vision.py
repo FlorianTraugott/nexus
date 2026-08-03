@@ -3,11 +3,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.config import get_settings
+from app.core.middleware import limiter, user_scoped_key, vision_rate_limit
 from app.db.models import User
 from app.db.session import get_db
 from app.schemas.vision import (
@@ -30,7 +31,9 @@ router = APIRouter(prefix="/vision", tags=["vision"])
 
 # Declared before /{document_id} so "search" is not captured as a document_id.
 @router.post("/search", response_model=ImageSearchResponse)
+@limiter.limit(vision_rate_limit, key_func=user_scoped_key)
 async def search_images(
+    request: Request,
     payload: ImageSearchRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -64,7 +67,9 @@ async def search_images(
 
 
 @router.post("/{document_id}", response_model=VisionAnswerResponse)
+@limiter.limit(vision_rate_limit, key_func=user_scoped_key)
 async def ask_document_images(
+    request: Request,
     document_id: uuid.UUID,
     payload: VisionQuestionRequest,
     current_user: Annotated[User, Depends(get_current_user)],

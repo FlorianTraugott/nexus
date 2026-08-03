@@ -75,6 +75,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Demo cost-exposure hardening. Set REGISTRATION_ENABLED=false in the public
+    # demo so /auth/register returns 403 (default true leaves local dev/tests
+    # untouched). The RATE_LIMIT_* values throttle the OpenAI-spending endpoints
+    # per authenticated USER (JWT identity). NOTE: buckets are per-(limit, key,
+    # endpoint), so /query and /query/stream get SEPARATE 60/hour buckets (120
+    # combined), AND on the SHARED demo account that ceiling is GLOBAL across all
+    # visitors, not per person — the two facts pull opposite ways, tune with both
+    # in mind. This is defense-in-depth against casual abuse; the real spend
+    # backstop is the OpenAI project cap (set in the dashboard).
+    REGISTRATION_ENABLED: bool = True
+    RATE_LIMIT_QUERY: str = "60/hour"
+    RATE_LIMIT_VISION: str = "20/hour"
+    RATE_LIMIT_RESEARCH: str = "10/hour"
+
     UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE_MB: int = 25
     CHUNK_SIZE: int = 1000

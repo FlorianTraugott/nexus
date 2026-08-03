@@ -4,7 +4,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.core.middleware import limiter, query_rate_limit, user_scoped_key
 from app.db.models import MessageRole, User
 from app.db.repositories import conversation as conversation_repo
 from app.db.session import get_db
@@ -78,7 +79,9 @@ async def _persist_turn(
 
 
 @router.post("", response_model=QueryResponse)
+@limiter.limit(query_rate_limit, key_func=user_scoped_key)
 async def query(
+    request: Request,
     payload: QueryRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -188,7 +191,9 @@ async def query(
 
 
 @router.post("/stream")
+@limiter.limit(query_rate_limit, key_func=user_scoped_key)
 async def query_stream(
+    request: Request,
     payload: QueryRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],

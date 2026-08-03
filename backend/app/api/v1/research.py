@@ -8,11 +8,12 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.config import get_settings
+from app.core.middleware import limiter, research_rate_limit, user_scoped_key
 from app.db.models import User
 from app.db.repositories import research as research_repo
 from app.db.session import get_db
@@ -38,7 +39,9 @@ def get_research_runner() -> ResearchRunner:
 @router.post(
     "", response_model=ResearchTaskCreated, status_code=status.HTTP_202_ACCEPTED
 )
+@limiter.limit(research_rate_limit, key_func=user_scoped_key)
 async def create_research_task(
+    request: Request,
     payload: ResearchRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],

@@ -46,6 +46,11 @@ async def _issue_token_pair(db: AsyncSession, user_id: uuid.UUID) -> Token:
 async def register(
     request: Request, payload: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> User:
+    # Env-gated: closed in the public demo (default true leaves dev/tests open).
+    if not get_settings().REGISTRATION_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Registration is disabled"
+        )
     if await user_repo.get_user_by_email(db, payload.email) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
