@@ -1,0 +1,17 @@
+# Keep the build context minimal and secrets out of the image.
+node_modules
+.next
+out
+build
+
+# Local env (NEXT_PUBLIC_API_URL is injected as a build ARG, never from .env)
+.env*
+
+.git
+.DS_Store
+*.tsbuildinfo
+npm-debug.log*
+
+# Docker files themselves don't belong in the context
+Dockerfile
+.dockerignore

@@ -105,3 +105,17 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  # Same regression net as the backend `build` job. The dummy NEXT_PUBLIC_API_URL
+  # is baked into the bundle at build time, so this CI image is NOT deployable —
+  # the deployable image is built with the real backend URL at deploy time (12.6).
+  # CI proves the build works, not the artifact.
+  frontend-build:
+    name: Frontend Docker build
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build --build-arg NEXT_PUBLIC_API_URL=https://api.invalid -t nexus-frontend:ci ./frontend
