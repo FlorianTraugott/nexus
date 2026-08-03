@@ -10,13 +10,33 @@ from app.api.v1 import auth, conversations, documents, query, research, vision
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import configure_middleware
-from app.db.session import engine
+from app.core.startup import (
+    check_vector_store_consistency,
+    require_openai_key,
+    sweep_stranded_research_tasks,
+)
+from app.db.session import AsyncSessionLocal, engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log = get_logger(__name__)
-    log.info("startup", environment=get_settings().ENVIRONMENT)
+    settings = get_settings()
+    log.info("startup", environment=settings.ENVIRONMENT)
+
+    # FATAL-before-best-effort: the key check (no DB) and the consistency check
+    # abort startup if they raise; the sweep is best-effort so its failure is
+    # caught and logged. The startup session closes before `yield`, so nothing
+    # here can hand a poisoned session to a request handler.
+    require_openai_key(settings)
+    async with AsyncSessionLocal() as session:
+        await check_vector_store_consistency(session)
+        try:
+            await sweep_stranded_research_tasks(session)
+        except Exception:
+            await session.rollback()
+            log.error("stranded_research_task_sweep_failed", exc_info=True)
+
     yield
     await engine.dispose()
     log.info("shutdown")

@@ -1,8 +1,9 @@
 """Research-task database queries."""
 
 import uuid
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import ResearchTask, ResearchTaskStatus
@@ -57,3 +58,21 @@ async def set_task_failed(db: AsyncSession, task: ResearchTask, error: str) -> N
     task.status = ResearchTaskStatus.FAILED
     task.error = error
     await db.flush()
+
+
+async def sweep_running_tasks(db: AsyncSession, reason: str) -> int:
+    """Mark every RUNNING task FAILED in one UPDATE; return how many.
+
+    A boot-time sweep of orphans left by a restart — set-based, not the loaded-row
+    set_task_failed above. Correctness rests on single-instance: at boot no task is
+    genuinely running (the runner lives in the process now starting), so every
+    RUNNING row is stranded. The caller owns the commit.
+    """
+    result = await db.execute(
+        update(ResearchTask)
+        .where(ResearchTask.status == ResearchTaskStatus.RUNNING)
+        .values(status=ResearchTaskStatus.FAILED, error=reason)
+    )
+    # AsyncSession.execute is typed as Result, but a Core UPDATE yields a
+    # CursorResult, which is where rowcount lives.
+    return cast("CursorResult[Any]", result).rowcount

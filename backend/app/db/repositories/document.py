@@ -2,11 +2,21 @@
 
 import uuid
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.models import Document, DocumentChunk, DocumentImage, DocumentSourceType
+
+
+async def count_all_chunks(db: AsyncSession) -> int:
+    """Total chunk rows across all users.
+
+    The text vector collection (nexus_chunks) is global, so the startup
+    consistency check compares this global count against Chroma's.
+    """
+    result = await db.execute(select(func.count()).select_from(DocumentChunk))
+    return result.scalar_one()
 
 
 async def create_document(
