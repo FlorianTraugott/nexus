@@ -15,6 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mapCreateResearchError } from "@/lib/research-forms";
 
+// The pre-seeded demo research task (scripts/seed_demo.py). Baked at BUILD time,
+// so it is only set in the deployed demo; absent in local dev, where the card
+// simply does not render. No fallback: an unset var means "no example report".
+const DEMO_RESEARCH_TASK_ID = process.env.NEXT_PUBLIC_DEMO_RESEARCH_TASK_ID;
+
 export default function ResearchPage() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
@@ -61,6 +66,21 @@ export default function ResearchPage() {
               <AlertTitle>Couldn’t start</AlertTitle>
               <AlertDescription>{mapCreateResearchError(error)}</AlertDescription>
             </Alert>
+          )}
+          {DEMO_RESEARCH_TASK_ID && (
+            <div className="mt-8 rounded-lg border p-4">
+              <p className="text-sm font-medium">See an example report</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                A completed research run over the demo documents — no wait, no
+                cost.
+              </p>
+              <Link
+                href={`/research/${DEMO_RESEARCH_TASK_ID}`}
+                className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+              >
+                View the example report →
+              </Link>
+            </div>
           )}
         </main>
       </div>
