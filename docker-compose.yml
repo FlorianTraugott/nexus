@@ -1,10 +1,5 @@
-# ════════════════════════════════════════════════════════════
-#  NEXUS AI — local development stack
-#  Run with:  make up   (or:  docker compose up --build)
-#
-#  Part 1 brings up: postgres + backend.
-#  The `frontend` service is added in Part 8.
-# ════════════════════════════════════════════════════════════
+# Local development stack: postgres + backend. The frontend is NOT in compose;
+# it runs via `npm run dev` (see README). Run with: make up  (or: docker compose up --build)
 
 services:
   db:

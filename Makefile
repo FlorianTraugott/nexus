@@ -1,7 +1,4 @@
-# ════════════════════════════════════════════════════════════
-#  NEXUS AI — developer shortcuts
-#  Run `make help` to see all commands.
-# ════════════════════════════════════════════════════════════
+# Developer shortcuts. Run `make help` to see all commands.
 
 .PHONY: help up down build logs dev lint format test hooks clean migrate upgrade downgrade
 
