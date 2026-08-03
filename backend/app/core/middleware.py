@@ -13,9 +13,27 @@ from starlette.responses import Response
 
 from app.core.config import get_settings
 
+
+def _client_identifier(request: Request) -> str:
+    """Rate-limit key: the real client IP, honouring a trusted proxy.
+
+    Behind Railway's edge, request.client is the proxy and every caller would
+    share one bucket. When TRUST_PROXY_HEADERS is set we take the LAST entry of
+    X-Forwarded-For — the IP the trusted edge observed and appended (assumes a
+    single trusted hop; confirm the hop count against the real deployment). A
+    client-forged header is rejected by falling back to the peer address when the
+    setting is off, so this is safe to leave false anywhere without a proxy.
+    """
+    if get_settings().TRUST_PROXY_HEADERS:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[-1].strip()
+    return get_remote_address(request)
+
+
 # Disabled under tests so repeated requests in the suite are not throttled.
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=_client_identifier,
     enabled=get_settings().ENVIRONMENT != "test",
 )
 

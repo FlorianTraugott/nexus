@@ -1,10 +1,40 @@
 """Application settings, loaded from the environment and validated at startup."""
 
+import os
 from functools import lru_cache
 from typing import Self
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import computed_field, model_validator
+from pydantic import computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ASYNC_PG_DRIVER = "postgresql+asyncpg"
+# libpq-style query params that a managed provider bakes into DATABASE_URL but
+# asyncpg does not accept (it configures TLS via connect_args, not the DSN).
+# Stripped here; SSL is controlled by DB_SSL_REQUIRE instead.
+_ASYNCPG_INCOMPATIBLE_QUERY_KEYS = {"sslmode", "channel_binding"}
+_KNOWN_ENVIRONMENTS = {"development", "staging", "production", "test"}
+
+
+def _normalise_async_dsn(dsn: str) -> str:
+    """Coerce a provider-supplied DSN onto the asyncpg driver.
+
+    Managed Postgres hands you `postgres://` or `postgresql://` (and sometimes a
+    `?sslmode=require` suffix). SQLAlchemy needs the explicit `+asyncpg` driver,
+    and asyncpg rejects the libpq-only query params, so both are rewritten.
+    """
+    parts = urlsplit(dsn)
+    scheme = parts.scheme
+    if scheme in ("postgres", "postgresql") or scheme.startswith("postgresql+"):
+        scheme = _ASYNC_PG_DRIVER
+    query = urlencode(
+        [
+            (k, v)
+            for k, v in parse_qsl(parts.query, keep_blank_values=True)
+            if k not in _ASYNCPG_INCOMPATIBLE_QUERY_KEYS
+        ]
+    )
+    return urlunsplit((scheme, parts.netloc, parts.path, query, parts.fragment))
 
 
 class Settings(BaseSettings):
@@ -16,14 +46,29 @@ class Settings(BaseSettings):
     )
 
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    # Safe-by-default: an unset DEBUG must not enable debug mode (verbose errors,
+    # SQL echo) in production. Local dev and Docker set DEBUG=true explicitly.
+    DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost:3000"
+    # Behind a platform proxy (Railway), request.client is the proxy, so IP-based
+    # rate limits collapse to one bucket. When true, the limiter keys off the real
+    # client IP from X-Forwarded-For. Only trust this where a proxy is guaranteed
+    # in front of the app (never bind the app port publicly); false locally, where
+    # a client could forge the header directly.
+    TRUST_PROXY_HEADERS: bool = False
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_HOST: str = "db"
     POSTGRES_PORT: int = 5432
+    # Optional full connection string. Managed Postgres (Railway/Render) hands you
+    # one; when set it OVERRIDES the assembled POSTGRES_* URL and is normalised to
+    # the asyncpg driver. Left blank locally so the POSTGRES_* parts drive it.
+    DATABASE_URL: str = ""
+    # Managed Postgres requires TLS; local/Docker Postgres does not. When true the
+    # engine connects with SSL (session.py passes connect_args={"ssl": True}).
+    DB_SSL_REQUIRE: bool = False
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
@@ -103,6 +148,27 @@ class Settings(BaseSettings):
     # under this local-only account so eval documents never mix with real users.
     EVAL_USER_EMAIL: str = "eval@nexus.local"
 
+    @field_validator("ENVIRONMENT")
+    @classmethod
+    def _known_environment(cls, v: str) -> str:
+        # Fail loud on a typo ("prod" != "production"): prod-gated behaviour keys
+        # off this exact string, so a silent mismatch would bypass those guards.
+        if v not in _KNOWN_ENVIRONMENTS:
+            raise ValueError(
+                f"ENVIRONMENT must be one of {sorted(_KNOWN_ENVIRONMENTS)}, got {v!r}"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def _absolutise_state_paths(self) -> Self:
+        # Relative state dirs resolve against the process CWD, which differs
+        # between `uvicorn` from backend/ and a container WORKDIR. Resolve once at
+        # load so the path is unambiguous (and logged as such); idempotent on the
+        # absolute /data/* values production sets.
+        self.UPLOAD_DIR = os.path.abspath(self.UPLOAD_DIR)
+        self.CHROMA_PERSIST_DIR = os.path.abspath(self.CHROMA_PERSIST_DIR)
+        return self
+
     @model_validator(mode="after")
     def _memory_covers_rewrite_history(self) -> Self:
         # The query endpoint loads history once at MEMORY_HISTORY_TURNS and the
@@ -121,8 +187,12 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
+        # An explicit DATABASE_URL (managed Postgres) wins over the assembled
+        # POSTGRES_* URL; otherwise build the async DSN from the parts.
+        if self.DATABASE_URL:
+            return _normalise_async_dsn(self.DATABASE_URL)
         return (
-            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"{_ASYNC_PG_DRIVER}://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
