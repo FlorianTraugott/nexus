@@ -1,6 +1,6 @@
 # Developer shortcuts. Run `make help` to see all commands.
 
-.PHONY: help up down build logs dev lint format test hooks clean migrate upgrade downgrade
+.PHONY: help up down build logs dev lint format test seed-demo hooks clean migrate upgrade downgrade
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -29,6 +29,9 @@ format:  ## Auto-format code
 
 test:  ## Run the test suite
 	cd backend && pytest
+
+seed-demo:  ## Seed the demo corpus + research task LOCALLY (prod uses `railway run` — see DEPLOY.md)
+	cd backend && python -m scripts.seed_demo
 
 migrate:  ## Generate a migration from model changes (usage: make migrate MSG="description")
 	docker compose exec backend alembic revision --autogenerate -m "$(MSG)"

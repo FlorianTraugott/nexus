@@ -162,6 +162,11 @@ class Settings(BaseSettings):
     # under this local-only account so eval documents never mix with real users.
     EVAL_USER_EMAIL: str = "eval@nexus.local"
 
+    # Public-demo account (scripts/seed_demo.py). Visitors share this login, so
+    # these are not secrets — the demo page shows them. Overridable via env.
+    DEMO_USER_EMAIL: str = "demo@nexus.ai"
+    DEMO_USER_PASSWORD: str = "demo-nexus-public"
+
     @field_validator("ENVIRONMENT")
     @classmethod
     def _known_environment(cls, v: str) -> str:

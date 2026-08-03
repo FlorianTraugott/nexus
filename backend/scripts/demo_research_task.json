@@ -1,0 +1,80 @@
+{
+  "topic": "Summarise Project Aurora's status, capacity, and key technical metrics.",
+  "stage": "done",
+  "web": {
+    "query": "Summarise Project Aurora's status, capacity, and key technical metrics.",
+    "hits": []
+  },
+  "kb": {
+    "query": "Summarise Project Aurora's status, capacity, and key technical metrics.",
+    "findings": [
+      {
+        "chunk_id": "b53a5553-5da0-40b5-a4a8-881ed023d128",
+        "document_id": "2ba0faec-955c-4f19-9833-03e78c884ee8",
+        "chunk_index": 0,
+        "distance": 0.3696587085723877,
+        "content_preview": "# Project Aurora \u2014 Community Microgrid Overview\n\nProject Aurora is a community-scale renewable microgrid operated by the Rivergate\nEnergy Cooperative in the town of Millbrook. It was commissioned in the third\nquarter of 2025 and supplies clean electricity to approximately 1,800 h"
+      },
+      {
+        "chunk_id": "38beebf1-1bc7-4867-a5bb-33c01cf62889",
+        "document_id": "c7a604a1-d231-4fe6-ae22-4093f2f7acae",
+        "chunk_index": 0,
+        "distance": 0.37094932794570923,
+        "content_preview": "# Project Aurora \u2014 Technical Architecture\n\nThis document describes the main components of the Aurora microgrid and how they\nfit together. All figures are nameplate ratings unless noted otherwise.\n\n## Generation\n\n- Solar PV array: 3.0 MW of ground-mounted panels across 6 hectares."
+      },
+      {
+        "chunk_id": "f4e37e32-14a9-400b-ae2e-cc923ee68bf5",
+        "document_id": "2ba0faec-955c-4f19-9833-03e78c884ee8",
+        "chunk_index": 1,
+        "distance": 0.4285318851470947,
+        "content_preview": "\u2014 during outages. When the\nregional grid is available, Aurora runs grid-tied and exports surplus energy;\nduring an outage it islands and powers the critical-facilities circuit on its own.\n\n## Status\n\nAs of the end of 2025, Aurora had operated for one full quarter and met its\nfirs"
+      },
+      {
+        "chunk_id": "e01ed07e-c8de-4cb8-849c-aa59e172231d",
+        "document_id": "c7a604a1-d231-4fe6-ae22-4093f2f7acae",
+        "chunk_index": 1,
+        "distance": 0.5560400485992432,
+        "content_preview": "inverters with a rated conversion efficiency of 98.2 percent.\n- The inverters allow Aurora to run grid-tied or to island automatically within\n  20 milliseconds of detecting a grid fault.\n\n## Control\n\nA local controller balances generation, storage, and load every second. Its\nprio"
+      }
+    ]
+  },
+  "summary": {
+    "key_points": [
+      "Project Aurora is a community-scale renewable microgrid in Millbrook operated by Rivergate Energy Cooperative.",
+      "Commissioned in Q3 2025, it supplies clean electricity to about 1,800 households.",
+      "It has a 3.0 MW solar PV array spread over 6 hectares.",
+      "The microgrid can operate grid-tied and export surplus energy, or island itself to power critical facilities during outages.",
+      "Inverters have a rated conversion efficiency of 98.2% and switch to island mode within 20 milliseconds of a fault.",
+      "A local controller balances generation, storage, and load every second."
+    ],
+    "abstract": "Project Aurora is a renewable microgrid commissioned in the third quarter of 2025, serving approximately 1,800 homes in Millbrook. It features a 3.0 MW solar photovoltaic array over 6 hectares and employs inverters with a high efficiency of 98.2%. The system operates grid-tied under normal conditions, exporting surplus energy, and can quickly island within 20 milliseconds to supply critical facilities during outages. A local controller manages the dynamic balance of generation, storage, and load in real time. As of the end of 2025, Project Aurora had successfully completed its first full quarter of operation."
+  },
+  "report": {
+    "title": "Project Aurora Renewable Microgrid Overview",
+    "sections": [
+      {
+        "heading": "Introduction",
+        "body": "Project Aurora is a renewable microgrid commissioned in the third quarter of 2025 to serve the community of Millbrook. Operated by Rivergate Energy Cooperative, it aims to provide clean and reliable electricity to approximately 1,800 homes."
+      },
+      {
+        "heading": "System Specifications",
+        "body": "The microgrid includes a 3.0 MW solar photovoltaic (PV) array spread over 6 hectares. The system employs highly efficient inverters with a rated conversion efficiency of 98.2%. These inverters support seamless transition between grid-tied and islanded operations."
+      },
+      {
+        "heading": "Operational Modes",
+        "body": "Project Aurora operates grid-tied under normal conditions, exporting surplus energy back to the grid to maximize renewable energy use. In the event of a grid fault or outage, the system can island within 20 milliseconds, supplying electricity to critical facilities to maintain uninterrupted service."
+      },
+      {
+        "heading": "Control and Management",
+        "body": "A local controller dynamically manages the balance between generation, energy storage, and load demand in real time. This controller updates every second to maintain system stability and optimize energy flows."
+      },
+      {
+        "heading": "Project Status",
+        "body": "As of the end of 2025, Project Aurora successfully completed its first full quarter of operation, demonstrating its capability to reliably serve the Millbrook community with clean energy."
+      }
+    ],
+    "markdown": "# Project Aurora Renewable Microgrid Overview\n\n## Introduction\n\nProject Aurora is a renewable microgrid commissioned in the third quarter of 2025 to serve the community of Millbrook. Operated by Rivergate Energy Cooperative, it aims to provide clean and reliable electricity to approximately 1,800 homes.\n\n## System Specifications\n\nThe microgrid includes a 3.0 MW solar photovoltaic (PV) array spread over 6 hectares. The system employs highly efficient inverters with a rated conversion efficiency of 98.2%. These inverters support seamless transition between grid-tied and islanded operations.\n\n## Operational Modes\n\nProject Aurora operates grid-tied under normal conditions, exporting surplus energy back to the grid to maximize renewable energy use. In the event of a grid fault or outage, the system can island within 20 milliseconds, supplying electricity to critical facilities to maintain uninterrupted service.\n\n## Control and Management\n\nA local controller dynamically manages the balance between generation, energy storage, and load demand in real time. This controller updates every second to maintain system stability and optimize energy flows.\n\n## Project Status\n\nAs of the end of 2025, Project Aurora successfully completed its first full quarter of operation, demonstrating its capability to reliably serve the Millbrook community with clean energy."
+  },
+  "warnings": [],
+  "error": null
+}
