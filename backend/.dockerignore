@@ -1,0 +1,24 @@
+# Keep the build context minimal, and keep secrets + local state OUT of the image.
+
+# Secrets: a baked .env would ship credentials inside the image.
+.env
+.env.*
+
+# Local state — these live on a mounted volume in production. Baking the dev
+# store would ship stale vectors/files that the 12.2b consistency check then
+# compares against, and 276M+ of uploads bloats the image.
+chroma/
+uploads/
+
+# Virtualenvs and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Not runtime: the test suite and the eval harness (which also does not deploy).
+tests/
+evals/

@@ -1,3 +1,6 @@
+# Runtime dependencies — this file is what the production image installs.
+# Dev/test/eval tooling lives in requirements-dev.txt (which includes this one).
+
 # Core runtime
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
@@ -7,6 +10,8 @@ pydantic==2.10.3
 pydantic-settings==2.7.0
 sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0
+# Runtime, not dev: D3's pre-deploy container runs `alembic upgrade head` off
+# this same image, so migrations must be installed in production.
 alembic==1.14.0
 structlog==24.4.0
 
@@ -31,24 +36,11 @@ chromadb==1.5.9
 # RAG: generation (LLM)
 anthropic==0.111.0
 
-# Research pipeline: web search
+# Research pipeline: web search. tavily-python plus httpx, which the search
+# service imports directly (app/services/search.py) — so httpx is runtime.
 tavily-python==0.7.26
+httpx==0.28.1
 
 # MCP server (Part 6): expose search + retrieval tools over Model Context Protocol.
 # Held at <1.13: 1.13+ require pydantic>=2.11 and pull starlette>=0.49 (fastapi 0.115 caps <0.42).
 mcp==1.12.4
-
-# Eval harness: golden-set retrieval evaluation (evals/) reads the YAML golden set.
-pyyaml==6.0.3
-
-# Dev / quality tooling
-ruff==0.8.2
-black==24.10.0
-mypy==1.13.0
-pre-commit==4.0.1
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.28.1
-aiosqlite==0.20.0
-types-aiofiles==25.1.0.20260518
-types-pyyaml==6.0.12.20260518

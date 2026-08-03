@@ -1,0 +1,24 @@
+# Dev/test/eval dependencies. Installs the runtime set plus tooling that must
+# NOT ship in the production image (linters, test runner, type stubs, the eval
+# harness's YAML reader). Use locally and in CI: pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# Quality tooling
+ruff==0.8.2
+black==24.10.0
+mypy==1.13.0
+pre-commit==4.0.1
+
+# Test runner + in-memory DB driver for the integration suite
+pytest==8.3.4
+pytest-asyncio==0.24.0
+aiosqlite==0.20.0
+
+# Eval harness (evals/) reads the YAML golden set; app/ never imports yaml, and
+# the eval harness does not deploy — so this is dev-only.
+pyyaml==6.0.3
+
+# Type stubs (mypy only)
+types-aiofiles==25.1.0.20260518
+types-pyyaml==6.0.12.20260518
