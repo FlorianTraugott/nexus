@@ -13,6 +13,7 @@ import { Menu, Plus, Trash2, X } from "lucide-react";
 
 import { useConversations } from "@/hooks/use-conversations";
 import { useDeleteConversation } from "@/hooks/use-delete-conversation";
+import { LogoutButton } from "@/components/logout-button";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -224,6 +225,14 @@ function ConversationSidebar({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </nav>
+      {/* The account chrome lives on the dashboard, and every other surface has
+          a back link at the top of a normal page. /chat is the exception worth
+          fixing: this sidebar is md:hidden, so on a phone a visitor inside a
+          conversation would have to open the drawer to find any way out, with
+          no logout anywhere in that flow. */}
+      <div className="shrink-0 border-t p-4">
+        <LogoutButton className="w-full" />
+      </div>
     </aside>
   );
 }
