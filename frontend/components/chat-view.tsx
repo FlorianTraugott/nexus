@@ -1,46 +1,102 @@
 "use client";
 
 // The conversation surface shared by /chat (new chat) and /chat/[id] (existing
-// conversation, hydrated via initialTurns). Extracted unchanged from the Chat.2
-// page; route protection and the sidebar live in app/chat/layout.tsx.
+// conversation, hydrated via initialTurns). Route protection and the sidebar
+// live in app/chat/layout.tsx.
 //
 // KEYING CONTRACT: the caller keys this component by its MOUNT IDENTITY — the
 // route param ([id] page) or nothing at all (/chat). Chat.3b's lazily-created
 // live conversation id is internal state and must NEVER back the key: feeding
 // it in would remount this view mid-first-send and abort its own stream.
 
-import { useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useChat, type ChatTurn } from "@/hooks/use-chat";
 import { useCreateConversation } from "@/hooks/use-create-conversation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { mapCreateConversationError } from "@/lib/conversations-forms";
+import { cn } from "@/lib/utils";
 import type { Citation } from "@/types/api";
 
 // Conversation titles are the first question, truncated (backend cap is 255;
 // 60 keeps the sidebar readable).
 const TITLE_MAX_CHARS = 60;
 
+// How close to the bottom still counts as "following along".
+const NEAR_BOTTOM_PX = 100;
+
+const PREVIEW_MAX_CHARS = 220;
+
+// The signature element, in two parts: an ultramarine RAIL down the answer marks
+// it as grounded, and a horizontal INDEX of citation markers says in what. Both
+// appear the moment the metadata frame lands — before the first token, which the
+// SSE contract guarantees — so the sources visibly exist before the words do.
+// An abstained turn keeps the rail in muted ink with no index: visibly
+// ungrounded, which is honest, rather than visibly broken.
+//
+// The index is HORIZONTAL, and that is the whole point. Anything arranged
+// vertically in the left gutter beside prose gets read as indexing that prose —
+// as line numbers — and the collision is acute when the answer is itself a
+// numbered list, putting two unrelated numbering systems side by side. Stacking
+// the markers at the rail's head did not avoid that false mapping, it only moved
+// it from source-to-paragraph to source-to-line. Spreading them further apart
+// makes it worse, not better: the column then spans more of the answer and the
+// positional reading strengthens. Horizontal enumeration reads as a set.
+//
+// Rendered as [n] to match exactly the markers the model emits inline, so the
+// correspondence is self-evident without a label. (Those markers are emergent
+// rather than instructed — see build_prompt; if they ever stop appearing this
+// still works as a source index.)
+function CitationIndex({ citations }: { citations: Citation[] }) {
+  if (citations.length === 0) return null;
+  return (
+    // aria-hidden: the same numbering is conveyed accessibly by the sources list.
+    <ol className="mb-3 flex flex-wrap gap-x-2.5 gap-y-1" aria-hidden="true">
+      {citations.map((c, i) => (
+        <li key={c.chunk_id} className="font-mono text-meta text-primary">
+          [{i + 1}]
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 // Numbered to match the answer's emergent [n] markers: the citations array
 // order IS the numbered-passage order the prompt was built from.
+//
+// Ranked, not scored. The cosine distance is real and on the wire, but a raw
+// distance is uninterpretable at a glance — no scale, no reference point, and
+// LOWER means better, which reads backwards. Rank is what a reader can act on;
+// the number stays available in the title for anyone who looks.
 function Sources({ citations }: { citations: Citation[] }) {
   if (citations.length === 0) return null;
   return (
-    <div className="mt-3 border-t pt-2">
-      <p className="text-xs font-medium text-muted-foreground">
-        Sources ({citations.length})
+    <div className="mt-5">
+      <p className="font-mono text-meta uppercase text-ink-2">
+        Sources · {citations.length}
       </p>
-      <ol className="mt-1 flex flex-col gap-1">
+      <ol className="mt-2.5 flex flex-col gap-2.5">
         {citations.map((c, i) => (
-          <li key={c.chunk_id} className="text-xs text-muted-foreground">
-            <span className="font-medium">[{i + 1}]</span>{" "}
-            {c.content_preview.length > 160
-              ? `${c.content_preview.slice(0, 160)}…`
-              : c.content_preview}
+          <li
+            key={c.chunk_id}
+            className="grid grid-cols-[1.25rem_1fr] gap-3"
+            title={`Rank ${i + 1} of ${citations.length} · cosine distance ${c.distance.toFixed(4)} (lower is more relevant)`}
+          >
+            <span className="font-mono text-meta text-primary">{i + 1}</span>
+            <p className="text-sm text-ink-2">
+              {c.content_preview.length > PREVIEW_MAX_CHARS
+                ? `${c.content_preview.slice(0, PREVIEW_MAX_CHARS)}…`
+                : c.content_preview}
+            </p>
           </li>
         ))}
       </ol>
@@ -49,49 +105,64 @@ function Sources({ citations }: { citations: Citation[] }) {
 }
 
 function TurnView({ turn }: { turn: ChatTurn }) {
+  const abstained = turn.status === "abstained";
   return (
-    <div className="flex flex-col gap-2">
-      <div className="max-w-[85%] self-end rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
-        {turn.question}
-      </div>
+    <article className="flex flex-col gap-4">
+      <h2 className="text-section text-balance">{turn.question}</h2>
       {turn.rewritten_question != null &&
         turn.rewritten_question !== turn.question && (
           // The standalone question retrieval actually used (follow-up rewrite).
           // Shown only when it differs; non-null-but-identical means "the
           // rewrite ran and changed nothing" — no badge for that.
-          <p className="max-w-[85%] self-end text-xs text-muted-foreground">
-            Searched for: {turn.rewritten_question}
+          <p className="font-mono text-meta text-ink-2">
+            <span className="uppercase">Searched for</span>{" "}
+            {turn.rewritten_question}
           </p>
         )}
-      <Card className="max-w-[85%] self-start py-0">
-        <CardContent className="px-4 py-3">
-          {turn.status === "abstained" ? (
+      {/* The rail is a border on the answer column, not a separate track: with
+          the markers gone from the gutter there is nothing to hold there but a
+          2px line, and a 28px column to show it wasted ~12% of a 375px
+          viewport. It spans the answer AND its sources — they are one grounded
+          unit. */}
+      <div
+        className={cn(
+          "border-l-2 pl-5",
+          abstained ? "border-border" : "border-primary/30",
+        )}
+      >
+        <CitationIndex citations={turn.citations} />
+        <div className="min-w-0">
+          {abstained ? (
             // Abstention is its own visual bucket: not an answer, not a failure.
-            <p className="text-sm italic text-muted-foreground">{turn.answer}</p>
+            <p className="font-reading text-reading text-ink-2 italic">
+              {turn.answer}
+            </p>
           ) : (
             (turn.answer || turn.status === "streaming") && (
-              <p className="whitespace-pre-wrap text-sm">
+              <p className="font-reading text-reading whitespace-pre-wrap">
                 {turn.answer}
                 {turn.status === "streaming" && (
-                  <span className="animate-pulse">▍</span>
+                  <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[0.15em] animate-pulse bg-primary align-middle" />
                 )}
               </p>
             )
           )}
           {turn.status === "cancelled" && (
-            <p className="mt-1 text-xs italic text-muted-foreground">Stopped.</p>
+            <p className="mt-2 font-mono text-meta uppercase text-ink-2">
+              Stopped
+            </p>
           )}
           {turn.status === "error" && (
             // Tokens already rendered stay above; the failure is explicit, never
             // a silent truncation.
-            <Alert variant="destructive" className="mt-2">
+            <Alert variant="destructive" className="mt-3">
               <AlertDescription>{turn.errorMessage}</AlertDescription>
             </Alert>
           )}
           <Sources citations={turn.citations} />
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -115,26 +186,43 @@ function Composer({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex items-center gap-3">
-      <Input
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        placeholder="Ask a question about your documents…"
-        disabled={isStreaming}
-        autoFocus
-      />
-      {isStreaming ? (
-        // Stop stays ENABLED while the input is locked — a user-initiated stop
-        // lands in the "cancelled" bucket, never rendered as a failure.
-        <Button type="button" variant="outline" onClick={onStop}>
-          Stop
-        </Button>
-      ) : (
-        <Button type="submit" disabled={!question.trim()}>
-          Send
-        </Button>
-      )}
-    </form>
+    <div className="shrink-0 border-t bg-card px-6 py-4">
+      <form
+        onSubmit={onSubmit}
+        className="mx-auto flex w-full max-w-[46rem] items-center gap-3"
+      >
+        <Input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask a question about your documents…"
+          disabled={isStreaming}
+          autoFocus
+          className="h-11"
+        />
+        {isStreaming ? (
+          // Stop stays ENABLED while the input is locked — a user-initiated stop
+          // lands in the "cancelled" bucket, never rendered as a failure.
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={onStop}
+            className="shrink-0"
+          >
+            Stop
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            size="lg"
+            disabled={!question.trim()}
+            className="shrink-0"
+          >
+            Send
+          </Button>
+        )}
+      </form>
+    </div>
   );
 }
 
@@ -157,6 +245,47 @@ export function ChatView({
   // conversations (same hazard class as the token-refresh single-flight; the
   // disabled composer is too thin a guard for a server-side side effect).
   const createPromiseRef = useRef<Promise<string> | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Whether the reader was following along, measured at the LAST SCROLL EVENT —
+  // which is necessarily BEFORE the content that triggers the effects below is
+  // appended. Reading the position inside the effect would measure the DOM
+  // after the append, when the new content has already pushed the bottom
+  // further away, and the answer would be wrong in the direction that yanks.
+  // Appending below the viewport does not move scrollTop, so it fires no scroll
+  // event and cannot overwrite this value. Starts true: a fresh transcript is
+  // at its bottom.
+  const isNearBottomRef = useRef(true);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
+  function onTranscriptScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    isNearBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
+  }
+
+  // A NEW TURN and an INCOMING TOKEN are different events and must not share an
+  // effect — one rule would get the other case wrong.
+  const turnCount = turns.length;
+  const latestAnswer = turns[turnCount - 1]?.answer ?? "";
+
+  // A turn the user just submitted scrolls to itself UNCONDITIONALLY: they
+  // typed it, so they want to see it, wherever they happened to be reading.
+  // Also covers mount, landing a hydrated conversation on its latest message.
+  useEffect(() => {
+    scrollToBottom();
+  }, [turnCount, scrollToBottom]);
+
+  // Tokens only follow if the reader was already at the bottom. Someone who
+  // scrolled up to re-read an earlier turn must never be yanked back down.
+  useEffect(() => {
+    if (isNearBottomRef.current) scrollToBottom();
+  }, [latestAnswer, scrollToBottom]);
 
   function ensureConversationId(
     question: string,
@@ -205,25 +334,37 @@ export function ChatView({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8">
-      <div className="flex flex-1 flex-col gap-6">
-        {turns.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-10 text-center">
-            <p className="text-sm font-medium">Ask your first question</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The answer streams in live, with the sources it drew from.
-            </p>
-          </div>
-        ) : (
-          turns.map((turn) => <TurnView key={turn.id} turn={turn} />)
-        )}
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        onScroll={onTranscriptScroll}
+        className="min-h-0 flex-1 overflow-y-auto px-6 py-10"
+      >
+        <div className="mx-auto w-full max-w-[46rem]">
+          {turns.length === 0 ? (
+            <div className="pt-10">
+              <h1 className="text-title text-balance">
+                Ask your first question
+              </h1>
+              <p className="mt-3 max-w-prose text-sm text-ink-2">
+                The answer streams in a word at a time, against a rail marking
+                the passages it drew from. If nothing in your documents supports
+                an answer, it says so instead of inventing one.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-14">
+              {turns.map((turn) => (
+                <TurnView key={turn.id} turn={turn} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="sticky bottom-0 mt-6 bg-background py-4">
-        {/* Every send belongs to a conversation (created lazily on the first
-            send of a fresh /chat). The stateless endpoint mode still exists on
-            the backend; the UI no longer uses it. */}
-        <Composer isStreaming={isStreaming} onSend={handleSend} onStop={stop} />
-      </div>
+      {/* Every send belongs to a conversation (created lazily on the first
+          send of a fresh /chat). The stateless endpoint mode still exists on
+          the backend; the UI no longer uses it. */}
+      <Composer isStreaming={isStreaming} onSend={handleSend} onStop={stop} />
     </main>
   );
 }

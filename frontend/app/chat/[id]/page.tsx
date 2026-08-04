@@ -23,8 +23,10 @@ export default function ConversationPage() {
 
   if (isPending) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <p className="text-sm text-muted-foreground">Loading conversation…</p>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-10">
+        <p className="mx-auto w-full max-w-[46rem] text-sm text-ink-2">
+          Loading conversation…
+        </p>
       </main>
     );
   }
@@ -32,8 +34,8 @@ export default function ConversationPage() {
   if (isError) {
     const notFound = isAxiosError(error) && error.response?.status === 404;
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-        <Alert variant="destructive">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-10">
+        <Alert variant="destructive" className="mx-auto w-full max-w-[46rem]">
           <AlertTitle>
             {notFound ? "Conversation not found" : "Couldn’t load conversation"}
           </AlertTitle>
