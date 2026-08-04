@@ -342,14 +342,27 @@ export function ChatView({
       >
         <div className="mx-auto w-full max-w-[46rem]">
           {turns.length === 0 ? (
+            // Two different empty states. An EXISTING conversation with nothing
+            // in it is not the same as a new one, and the generic prompt made it
+            // look broken: the row is created before the first turn (so the
+            // sidebar updates immediately, titled from the question), while a
+            // disconnected or stopped stream persists NOTHING — three correct
+            // decisions composing into a conversation named after a question it
+            // does not contain.
+            //
+            // The copy names the possible causes without asserting which one
+            // happened: this state is equally reachable from a conversation that
+            // was simply never used.
             <div className="pt-10">
               <h1 className="text-title text-balance">
-                Ask your first question
+                {conversationId
+                  ? "No saved turns yet"
+                  : "Ask your first question"}
               </h1>
               <p className="mt-3 max-w-prose text-sm text-ink-2">
-                The answer streams in a word at a time, against a rail marking
-                the passages it drew from. If nothing in your documents supports
-                an answer, it says so instead of inventing one.
+                {conversationId
+                  ? "An answer that was interrupted — by navigating away or pressing Stop — isn’t saved. Ask a question to continue this conversation."
+                  : "The answer streams in a word at a time, against a rail marking the passages it drew from. If nothing in your documents supports an answer, it says so instead of inventing one."}
               </p>
             </div>
           ) : (
