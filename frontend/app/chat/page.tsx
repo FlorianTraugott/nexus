@@ -6,7 +6,12 @@
 // remount. Route protection and the sidebar live in the chat layout.
 
 import { ChatView } from "@/components/chat-view";
+import { useChatReset } from "@/components/chat-reset";
 
 export default function NewChatPage() {
-  return <ChatView />;
+  // Keyed by the reset token, NOT by the live conversation id: the token changes
+  // only on a deliberate reset (deleting the conversation being viewed), never
+  // during a send, so it can back a key where the live id never could.
+  const { token } = useChatReset();
+  return <ChatView key={token} />;
 }

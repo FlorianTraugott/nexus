@@ -14,6 +14,7 @@ import { Menu, Plus, Trash2, X } from "lucide-react";
 import { useConversations } from "@/hooks/use-conversations";
 import { useDeleteConversation } from "@/hooks/use-delete-conversation";
 import { LogoutButton } from "@/components/logout-button";
+import { ChatResetProvider, useChatReset } from "@/components/chat-reset";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -44,10 +45,20 @@ function DeleteConversationControl({
   const queryClient = useQueryClient();
   const { mutate, isPending, isError, error, reset } = useDeleteConversation();
 
-  // Deleting the ACTIVE conversation must not leave the user on a dead route.
+  const { reset: resetChatView } = useChatReset();
+
+  // Deleting the ACTIVE conversation must not leave the user looking at it.
+  // BOTH steps are needed and they cover DIFFERENT cases: the navigation handles
+  // a real /chat/{id} mount, while resetChatView handles the lazy-create case
+  // where the URL says /chat/{id} but /chat is what is mounted — there the
+  // replace is a no-op reconcile and the transcript would survive. See
+  // components/chat-reset.tsx.
   function afterGone() {
     setOpen(false);
-    if (isActive) router.replace("/chat");
+    if (isActive) {
+      resetChatView();
+      router.replace("/chat");
+    }
   }
 
   function onConfirm() {
@@ -277,48 +288,52 @@ export default function ChatLayout({
           min-height:auto, which refuses to shrink below its content — one
           missing min-h-0 and the nested scroll region silently overflows the
           viewport instead of scrolling. */}
-      <div
-        data-nav={navOpen ? "open" : "closed"}
-        className="group/chat flex h-[100dvh] overflow-hidden"
-      >
-        <ConversationSidebar onClose={() => setNavOpen(false)} />
-        {/* Scrim: dismisses by tap and covers the transcript while the drawer
+      <ChatResetProvider>
+        <div
+          data-nav={navOpen ? "open" : "closed"}
+          className="group/chat flex h-[100dvh] overflow-hidden"
+        >
+          <ConversationSidebar onClose={() => setNavOpen(false)} />
+          {/* Scrim: dismisses by tap and covers the transcript while the drawer
             is over it. Rendered only when open so it never intercepts pointer
             events at rest, and md:hidden so desktop is untouched. */}
-        {navOpen && (
-          <div
-            role="presentation"
-            onClick={() => setNavOpen(false)}
-            className="fixed inset-0 z-40 bg-foreground/40 md:hidden"
-          />
-        )}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {/* Mobile chrome. New chat sits here as well as in the drawer so the
+          {navOpen && (
+            <div
+              role="presentation"
+              onClick={() => setNavOpen(false)}
+              className="fixed inset-0 z-40 bg-foreground/40 md:hidden"
+            />
+          )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {/* Mobile chrome. New chat sits here as well as in the drawer so the
               primary action stays one tap, not two. */}
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-card px-4 py-2.5 md:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Open conversations"
-              aria-expanded={navOpen}
-              aria-controls="conversation-nav"
-              onClick={() => setNavOpen(true)}
-            >
-              <Menu className="size-4" />
-              Conversations
-            </Button>
-            <Link
-              href="/chat"
-              aria-label="New chat"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              <Plus className="size-4" />
-              New
-            </Link>
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-card px-4 py-2.5 md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Open conversations"
+                aria-expanded={navOpen}
+                aria-controls="conversation-nav"
+                onClick={() => setNavOpen(true)}
+              >
+                <Menu className="size-4" />
+                Conversations
+              </Button>
+              <Link
+                href="/chat"
+                aria-label="New chat"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                )}
+              >
+                <Plus className="size-4" />
+                New
+              </Link>
+            </div>
+            {children}
           </div>
-          {children}
         </div>
-      </div>
+      </ChatResetProvider>
     </ProtectedRoute>
   );
 }
