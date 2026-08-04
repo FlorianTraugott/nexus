@@ -5,24 +5,52 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Three faces, three jobs, wired to the next/font variables declared in
+     app/layout.tsx. --font-sans previously read `var(--font-sans)` — a
+     self-reference, so the token was invalid at computed-value time and every
+     surface fell back to the browser's default font while Geist Sans was
+     downloaded and never referenced by anything.
+     --font-heading is deliberately the SAME face as --font-sans: hierarchy
+     comes from the type scale below, not from a second sans. */
+  --font-sans: var(--font-instrument-sans);
+  --font-heading: var(--font-instrument-sans);
+  --font-reading: var(--font-newsreader);
+  --font-mono: var(--font-geist-mono);
+
+  /* Semantic type steps. Size alone was never the hierarchy — each step carries
+     its own leading, tracking and weight so a call site picks one name, not
+     four classes. Interface body copy stays on Tailwind's text-sm rather than
+     gaining a synonym here (two names for 14px would only drift). */
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.01em;
+  --text-title--font-weight: 600;
+
+  --text-section: 1.0625rem;
+  --text-section--line-height: 1.3;
+  --text-section--font-weight: 600;
+
+  /* Answer and report prose — the most important text in the product, so it is
+     the largest thing on a page after the title. Pair with font-reading. */
+  --text-reading: 1.125rem;
+  --text-reading--line-height: 1.65;
+
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--letter-spacing: 0.02em;
+  --text-meta--font-weight: 500;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  /* The secondary ink step. --foreground and --muted-foreground already alias
+     --ink-1 and --ink-3, so this middle level — which shadcn has no name for —
+     is the only one needing its own utility (text-ink-2). */
+  --color-ink-2: var(--ink-2);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -49,72 +77,73 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Ink scale — one home for text colour, three deliberate levels. The scaffold
+     had a single --muted-foreground doing every non-primary string on every
+     surface, which is why nothing read as more or less important than anything
+     else. Contrast measured against --background: 16.5 / 6.9 / 4.7 : 1. */
+  --ink-1: oklch(0.19 0.015 253);
+  --ink-2: oklch(0.44 0.025 253);
+  --ink-3: oklch(0.53 0.022 253);
+
+  /* Hue is rationed: ultramarine is the only saturated colour in the UI's
+     resting state (accent, primary action, focus). Semantic hues appear only
+     when there is a real state to report. 8.5:1 on white, 7.6:1 on the page. */
+  --ultramarine: oklch(0.44 0.23 268);
+
+  --background: oklch(0.962 0.005 250);
+  --foreground: var(--ink-1);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: var(--ink-1);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: var(--ink-1);
+  --primary: var(--ultramarine);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.945 0.006 253);
+  --secondary-foreground: var(--ink-1);
+  --muted: oklch(0.945 0.006 253);
+  --muted-foreground: var(--ink-3);
+  --accent: oklch(0.93 0.008 260);
+  --accent-foreground: var(--ink-1);
+  --destructive: oklch(0.5 0.19 25);
+  --border: oklch(0.9 0.008 253);
+  /* A form field's border IS its affordance, so --input carries the 3:1
+     non-text contrast floor (3.11:1 on white). --border is structural — card
+     edges, dividers, rules — and is not an interface-state indicator, so it
+     stays light. Two tokens because they answer two different questions. */
+  --input: oklch(0.66 0.012 253);
+  --ring: var(--ultramarine);
+  --radius: 0.5rem;
 }
 
+/* Nothing applies this class today: there is no theme toggle and no
+   prefers-color-scheme hook, so the app is light-only in practice. These values
+   are kept in step with :root and are checked by flipping the class by hand in
+   devtools at the end of a segment — if that check is skipped, the segment's
+   ledger entry says dark is unverified rather than claiming it is maintained. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --ink-1: oklch(0.96 0.005 253);
+  --ink-2: oklch(0.75 0.015 253);
+  --ink-3: oklch(0.65 0.018 253);
+  --ultramarine: oklch(0.65 0.18 268);
+
+  --background: oklch(0.17 0.012 253);
+  --foreground: var(--ink-1);
+  --card: oklch(0.21 0.012 253);
+  --card-foreground: var(--ink-1);
+  --popover: oklch(0.21 0.012 253);
+  --popover-foreground: var(--ink-1);
+  --primary: var(--ultramarine);
+  --primary-foreground: oklch(0.17 0.03 268);
+  --secondary: oklch(0.26 0.012 253);
+  --secondary-foreground: var(--ink-1);
+  --muted: oklch(0.26 0.012 253);
+  --muted-foreground: var(--ink-3);
+  --accent: oklch(0.28 0.014 260);
+  --accent-foreground: var(--ink-1);
+  --destructive: oklch(0.65 0.17 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(0.55 0.012 253);
+  --ring: var(--ultramarine);
 }
 
 @layer base {
