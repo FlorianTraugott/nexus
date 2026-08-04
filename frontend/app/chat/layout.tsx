@@ -77,7 +77,17 @@ function DeleteConversationControl({
             variant="ghost"
             size="icon-sm"
             aria-label={`Delete ${conversation.title}`}
-            className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
+            // Always visible, never hover-revealed. In Tailwind v4 the hover
+            // variants sit inside @media (hover: hover), so on a touch device
+            // group-hover NEVER applies and an opacity-0 base would leave this
+            // permanently invisible — unreachable on a phone, not merely
+            // awkward. A hover-capability query could restore the reveal, but it
+            // depends on the media rule sorting before group-hover, and if that
+            // assumption is wrong the control disappears on DESKTOP instead: a
+            // worse failure than the one being fixed. Low weight does the same
+            // job as hiding, and a delete that only exists on hover is a
+            // discoverability problem on desktop anyway.
+            className="text-muted-foreground hover:text-destructive"
           />
         }
       >
@@ -124,7 +134,7 @@ function ConversationRow({ conversation }: { conversation: ConversationRead }) {
       className={cn(
         // The active conversation is marked by an ultramarine edge rather than
         // a fill: the same accent that marks a grounded answer, used once here.
-        "group/row relative flex items-center gap-1 rounded-md pr-1 transition-colors",
+        "relative flex items-center gap-1 rounded-md pr-1 transition-colors",
         isActive
           ? "bg-muted before:absolute before:inset-y-1 before:left-0 before:w-0.5 before:rounded-full before:bg-primary"
           : "hover:bg-muted/60",
