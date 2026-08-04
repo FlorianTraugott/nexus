@@ -20,8 +20,18 @@ COPY . .
 # URL must be set BEFORE the build. CI passes a dummy (the image is then not
 # deployable); the deployable image must be built with the real backend URL at
 # deploy time (12.6) — changing it later requires a REBUILD, not a restart.
+# Every NEXT_PUBLIC_* the app reads needs its own ARG: Railway passes service
+# variables as build args, but Docker only admits ones the Dockerfile declares.
+# An undeclared var is not an error — it is simply undefined at build time, so
+# the feature guarded by it silently never renders in the deployed image.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_DEMO_RESEARCH_TASK_ID
+ENV NEXT_PUBLIC_DEMO_RESEARCH_TASK_ID=$NEXT_PUBLIC_DEMO_RESEARCH_TASK_ID
+ARG NEXT_PUBLIC_DEMO_EMAIL
+ENV NEXT_PUBLIC_DEMO_EMAIL=$NEXT_PUBLIC_DEMO_EMAIL
+ARG NEXT_PUBLIC_DEMO_PASSWORD
+ENV NEXT_PUBLIC_DEMO_PASSWORD=$NEXT_PUBLIC_DEMO_PASSWORD
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
