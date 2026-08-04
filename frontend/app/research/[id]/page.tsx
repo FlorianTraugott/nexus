@@ -14,58 +14,73 @@
 // stalled state with a manual re-check.
 
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { isAxiosError } from "axios";
 
 import { useResearchTask } from "@/hooks/use-research-task";
-import { isResearchTaskStalled, isTerminalResearchStatus } from "@/lib/research";
+import { PageHeader } from "@/components/page-header";
 import { ProtectedRoute } from "@/components/protected-route";
+import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  RESEARCH_STATUS_DISPLAY,
+  isResearchTaskStalled,
+  isTerminalResearchStatus,
+} from "@/lib/research";
 import type {
   KBFindings,
   ResearchReport,
   ResearchTaskRead,
-  ResearchTaskStatus,
+  Summary,
   WebSearchFindings,
 } from "@/types/api";
 
-// Keyed by EVERY status so a new backend status is a compile error here, not a
-// silently blank badge (same discipline as the documents status badge).
-const STATUS_BADGE: Record<ResearchTaskStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 ring-amber-600/20",
-  running: "bg-blue-100 text-blue-800 ring-blue-600/20",
-  completed: "bg-green-100 text-green-800 ring-green-600/20",
-  failed: "bg-red-100 text-red-800 ring-red-600/20",
-};
-
-function StatusBadge({ status }: { status: ResearchTaskStatus }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-        STATUS_BADGE[status],
-      )}
-    >
-      {status}
-    </span>
-  );
-}
+const PREVIEW_MAX_CHARS = 220;
 
 // Degradations are visible even on success — a silently swallowed warning is
-// the "plausible but secretly wrong" failure this project rejects.
+// the "plausible but secretly wrong" failure this project rejects. It uses the
+// `warn` tone, which is deliberately NOT a StatusTone: this is a run that
+// SUCCEEDED with caveats, so `bad` would overstate it and `neutral` would let
+// it be skipped.
 function WarningsBanner({ warnings }: { warnings: string[] }) {
   if (warnings.length === 0) return null;
   return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
-      <p className="font-medium">This run degraded:</p>
-      <ul className="mt-1 list-inside list-disc">
+    <div className="rounded-xl bg-tone-warn-surface px-5 py-4">
+      <p className="font-mono text-meta uppercase text-tone-warn">
+        This run degraded
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
         {warnings.map((w) => (
-          <li key={w}>{w}</li>
+          <li key={w} className="text-sm text-ink-2">
+            {w}
+          </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+// The summarise agent's output. It has always been on the wire and was never
+// rendered — the page jumped straight from the topic into report sections while
+// the pipeline had already produced exactly the lede a report wants.
+function SummaryView({ summary }: { summary: Summary }) {
+  return (
+    <section className="rounded-xl bg-card px-6 py-5 shadow-xs">
+      <p className="font-mono text-meta uppercase text-ink-2">Summary</p>
+      <p className="mt-3 font-reading text-reading">{summary.abstract}</p>
+      {summary.key_points.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-2">
+          {summary.key_points.map((point) => (
+            <li key={point} className="flex gap-3 text-sm">
+              <span aria-hidden="true" className="text-primary">
+                —
+              </span>
+              <span className="text-ink-2">{point}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -73,18 +88,22 @@ function ReportView({ report }: { report: ResearchReport }) {
   // Sections as structured text — rendering report.markdown with a real
   // markdown component is a recorded deferral (new dep, decided deliberately).
   return (
-    <article className="flex flex-col gap-6">
-      <h2 className="font-heading text-lg font-medium">{report.title}</h2>
+    <article className="flex flex-col gap-8">
+      <h2 className="text-title text-balance">{report.title}</h2>
       {report.sections.map((s) => (
         <section key={s.heading}>
-          <h3 className="text-sm font-semibold">{s.heading}</h3>
-          <p className="mt-1 text-sm whitespace-pre-wrap">{s.body}</p>
+          <h3 className="text-section">{s.heading}</h3>
+          <p className="mt-2 font-reading text-reading whitespace-pre-wrap">
+            {s.body}
+          </p>
         </section>
       ))}
     </article>
   );
 }
 
+// Ranked, like the chat citations and for the same reason: a raw cosine distance
+// has no scale and reads backwards (lower is better). It stays in the title.
 function Evidence({
   kb,
   web,
@@ -96,20 +115,26 @@ function Evidence({
   const hasWeb = web !== null && web.hits.length > 0;
   if (!hasKb && !hasWeb) return null;
   return (
-    <div className="flex flex-col gap-4 border-t pt-4">
-      <h3 className="text-sm font-semibold">Evidence</h3>
+    <div className="flex flex-col gap-6 border-t pt-6">
+      <h3 className="text-section">Evidence</h3>
       {hasKb && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            From your documents ({kb.findings.length})
+          <p className="font-mono text-meta uppercase text-ink-2">
+            From your documents · {kb.findings.length}
           </p>
-          <ol className="mt-1 flex flex-col gap-1">
+          <ol className="mt-2.5 flex flex-col gap-2.5">
             {kb.findings.map((f, i) => (
-              <li key={f.chunk_id} className="text-xs text-muted-foreground">
-                <span className="font-medium">[{i + 1}]</span>{" "}
-                {f.content_preview.length > 200
-                  ? `${f.content_preview.slice(0, 200)}…`
-                  : f.content_preview}
+              <li
+                key={f.chunk_id}
+                className="grid grid-cols-[1.25rem_1fr] gap-3"
+                title={`Rank ${i + 1} of ${kb.findings.length} · cosine distance ${f.distance.toFixed(4)} (lower is more relevant)`}
+              >
+                <span className="font-mono text-meta text-primary">{i + 1}</span>
+                <p className="text-sm text-ink-2">
+                  {f.content_preview.length > PREVIEW_MAX_CHARS
+                    ? `${f.content_preview.slice(0, PREVIEW_MAX_CHARS)}…`
+                    : f.content_preview}
+                </p>
               </li>
             ))}
           </ol>
@@ -117,21 +142,21 @@ function Evidence({
       )}
       {hasWeb && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            From the web ({web.hits.length})
+          <p className="font-mono text-meta uppercase text-ink-2">
+            From the web · {web.hits.length}
           </p>
-          <ul className="mt-1 flex flex-col gap-1">
+          <ul className="mt-2.5 flex flex-col gap-2.5">
             {web.hits.map((h) => (
-              <li key={h.url} className="text-xs text-muted-foreground">
+              <li key={h.url} className="text-sm">
                 <a
                   href={h.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium underline-offset-2 hover:underline"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
                 >
                   {h.title}
-                </a>{" "}
-                — {h.snippet}
+                </a>
+                <p className="mt-0.5 text-ink-2">{h.snippet}</p>
               </li>
             ))}
           </ul>
@@ -165,7 +190,7 @@ function TaskBody({
             <Button
               variant="outline"
               size="sm"
-              className="mt-2"
+              className="mt-3"
               onClick={onRecheck}
               disabled={isRechecking}
             >
@@ -176,11 +201,11 @@ function TaskBody({
       );
     }
     return (
-      <div className="rounded-xl border border-dashed p-10 text-center">
-        <p className="animate-pulse text-sm font-medium">Researching…</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Searching, reading your documents, and writing the report. This
-          usually takes under a minute.
+      <div className="rounded-xl bg-card px-6 py-12 text-center shadow-xs">
+        <p className="animate-pulse text-section">Researching…</p>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-2">
+          Searching, reading your documents, and writing the report. This usually
+          takes under a minute, and the page keeps itself up to date.
         </p>
       </div>
     );
@@ -211,15 +236,23 @@ function TaskBody({
   }
 
   // Bucket 2: pipeline failure — a run that FINISHED and recorded its own
-  // failure. Partial evidence may exist and is still shown.
+  // failure. Deliberately NOT styled like bucket 3: the framing says the run
+  // completed, and whatever evidence it gathered before failing is still real
+  // output and stays on the page.
   if (task.result.error !== null) {
     return (
-      <div className="flex flex-col gap-4">
-        <Alert variant="destructive">
-          <AlertTitle>The pipeline could not complete</AlertTitle>
-          <AlertDescription>{task.result.error}</AlertDescription>
-        </Alert>
+      <div className="flex flex-col gap-6">
+        <div>
+          <p className="font-mono text-meta uppercase text-ink-2">
+            The run completed, then reported a failure
+          </p>
+          <Alert variant="destructive" className="mt-2">
+            <AlertTitle>The pipeline could not finish its report</AlertTitle>
+            <AlertDescription>{task.result.error}</AlertDescription>
+          </Alert>
+        </div>
         <WarningsBanner warnings={task.result.warnings} />
+        {task.result.summary && <SummaryView summary={task.result.summary} />}
         <Evidence kb={task.result.kb} web={task.result.web} />
       </div>
     );
@@ -227,12 +260,13 @@ function TaskBody({
 
   // Bucket 1: success.
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <WarningsBanner warnings={task.result.warnings} />
+      {task.result.summary && <SummaryView summary={task.result.summary} />}
       {task.result.report ? (
         <ReportView report={task.result.report} />
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-ink-2">
           The run completed without producing a report.
         </p>
       )}
@@ -252,55 +286,54 @@ export default function ResearchTaskPage() {
     isFetching,
   } = useResearchTask(id);
 
+  const notFound = isAxiosError(error) && error.response?.status === 404;
+
   return (
     <ProtectedRoute>
-      <div className="flex min-h-full flex-1 flex-col">
-        <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
-          <Link
-            href="/research"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Research
-          </Link>
-          {isPending && (
-            <p className="mt-6 text-sm text-muted-foreground">Loading task…</p>
-          )}
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        {task ? (
+          <PageHeader
+            backHref="/research"
+            backLabel="Research"
+            title={task.topic}
+            description={`Started ${new Date(task.created_at).toLocaleString()}`}
+            actions={
+              <StatusBadge {...RESEARCH_STATUS_DISPLAY[task.status]} />
+            }
+          />
+        ) : (
+          <PageHeader
+            backHref="/research"
+            backLabel="Research"
+            title="Research task"
+          />
+        )}
+
+        <div className="mt-8">
+          {isPending && <p className="text-sm text-ink-2">Loading task…</p>}
           {isError && (
-            <Alert variant="destructive" className="mt-6">
+            <Alert variant="destructive">
               <AlertTitle>
-                {isAxiosError(error) && error.response?.status === 404
+                {notFound
                   ? "Research task not found"
                   : "Couldn’t load the task"}
               </AlertTitle>
               <AlertDescription>
-                {isAxiosError(error) && error.response?.status === 404
+                {notFound
                   ? "It may belong to another account, or the link is wrong."
                   : "Please try again."}
               </AlertDescription>
             </Alert>
           )}
           {task && (
-            <>
-              <div className="mt-2 flex items-center justify-between gap-4">
-                <h1 className="font-heading text-xl font-medium">
-                  {task.topic}
-                </h1>
-                <StatusBadge status={task.status} />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Started {new Date(task.created_at).toLocaleString()}
-              </p>
-              <div className="mt-6">
-                <TaskBody
-                  task={task}
-                  onRecheck={() => void refetch()}
-                  isRechecking={isFetching}
-                />
-              </div>
-            </>
+            <TaskBody
+              task={task}
+              onRecheck={() => void refetch()}
+              isRechecking={isFetching}
+            />
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </ProtectedRoute>
   );
 }

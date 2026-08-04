@@ -63,6 +63,8 @@
   --color-tone-good-surface: var(--tone-good-surface);
   --color-tone-bad: var(--tone-bad);
   --color-tone-bad-surface: var(--tone-bad-surface);
+  --color-tone-warn: var(--tone-warn);
+  --color-tone-warn-surface: var(--tone-warn-surface);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -140,14 +142,23 @@
      Surfaces are mixed from the ink into --card, so a tone is defined once and
      its tint follows automatically — including in dark, where --card differs.
      Measured ink-on-surface: 6.5 / 6.9 / 5.4 / 5.4 : 1 light, all ≥ 4.5 dark. */
+  /* FIVE colour tokens, FOUR status tones. `warn` is deliberately not a
+     StatusTone: no status MEANS "degraded". It belongs to the research warnings
+     panel — a run that finished and produced a report, with caveats — which is a
+     meaning none of the other four carry. Reusing `bad` would overstate it (the
+     run succeeded) and `neutral` would understate it, and a degradation notice
+     that reads as metadata gets skipped, which is exactly the silently-swallowed
+     warning this project rejects. */
   --tone-neutral: var(--ink-2);
   --tone-active: var(--ultramarine);
   --tone-good: oklch(0.47 0.1 158);
   --tone-bad: var(--destructive);
+  --tone-warn: oklch(0.47 0.1 78);
   --tone-neutral-surface: color-mix(in oklch, var(--tone-neutral) 12%, var(--card));
   --tone-active-surface: color-mix(in oklch, var(--tone-active) 12%, var(--card));
   --tone-good-surface: color-mix(in oklch, var(--tone-good) 12%, var(--card));
   --tone-bad-surface: color-mix(in oklch, var(--tone-bad) 12%, var(--card));
+  --tone-warn-surface: color-mix(in oklch, var(--tone-warn) 12%, var(--card));
 }
 
 /* Nothing applies this class today: there is no theme toggle and no
@@ -184,10 +195,12 @@
      and --destructive, which are already dark-adjusted above. The surfaces
      re-mix themselves against the dark --card with no further overrides. */
   --tone-good: oklch(0.72 0.12 158);
+  --tone-warn: oklch(0.75 0.12 78);
   --tone-neutral-surface: color-mix(in oklch, var(--tone-neutral) 18%, var(--card));
   --tone-active-surface: color-mix(in oklch, var(--tone-active) 18%, var(--card));
   --tone-good-surface: color-mix(in oklch, var(--tone-good) 18%, var(--card));
   --tone-bad-surface: color-mix(in oklch, var(--tone-bad) 18%, var(--card));
+  --tone-warn-surface: color-mix(in oklch, var(--tone-warn) 18%, var(--card));
 }
 
 @layer base {

@@ -1,6 +1,7 @@
 // Domain policy for research tasks (transport-free, mirrors lib/documents.ts):
 // which statuses are terminal, and when a non-terminal task counts as stalled.
 
+import type { StatusTone } from "@/components/status-badge";
 import type { ResearchTaskRead, ResearchTaskStatus } from "@/types/api";
 
 export const TERMINAL_RESEARCH_STATUSES = [
@@ -13,6 +14,25 @@ export function isTerminalResearchStatus(status: ResearchTaskStatus): boolean {
     status,
   );
 }
+
+// Status -> how it should read. Sibling of DOCUMENT_STATUS_DISPLAY, and separate
+// on purpose: the shared StatusBadge takes a TONE and knows no status enum, so a
+// new backend status stays a compile error HERE, in the file that owns
+// ResearchTaskStatus. Labels are the backend's own words, capitalised.
+//
+// "running" is deliberately paired with an indeterminate treatment on the page:
+// `stage` lives inside `result`, which is null until the task is terminal, and
+// the row persists no per-transition progress — so a step indicator would be
+// invented rather than measured.
+export const RESEARCH_STATUS_DISPLAY: Record<
+  ResearchTaskStatus,
+  { tone: StatusTone; label: string }
+> = {
+  pending: { tone: "neutral", label: "Pending" },
+  running: { tone: "active", label: "Running" },
+  completed: { tone: "good", label: "Completed" },
+  failed: { tone: "bad", label: "Failed" },
+};
 
 // Stall ceiling. A run finishes in well under a minute, but the backend commits
 // RUNNING BEFORE the pipeline and only the runner's own except marks FAILED — a
