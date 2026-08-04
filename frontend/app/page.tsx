@@ -76,7 +76,7 @@ export default function Home() {
                   key={feature.title}
                   className={
                     feature.href
-                      ? "transition-shadow hover:ring-foreground/20"
+                      ? "transition-shadow hover:shadow-sm"
                       : undefined
                   }
                 >
