@@ -203,6 +203,25 @@
   --tone-warn-surface: color-mix(in oklch, var(--tone-warn) 18%, var(--card));
 }
 
+/* Two indefinite loops exist (the streaming caret and "Researching…"), plus the
+   dialog's zoom/fade and the mobile drawer's slide.
+   DO NOT "simplify" this to `animation: none`. base-ui drives dialog UNMOUNT off
+   its exit animation, so removing the animation outright can leave the panel
+   mounted or stuck mid-state. A near-zero duration COMPLETES immediately, which
+   satisfies the accessibility intent and the library's state machine both.
+   scroll-behavior is belt-and-braces: the chat transcript sets scrollTop
+   directly (so it can keep up with a token stream) and never scrolls smoothly. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
