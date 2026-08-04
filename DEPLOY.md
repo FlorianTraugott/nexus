@@ -177,6 +177,12 @@ and `research task: created`. It is idempotent — re-running it is safe and mak
 no OpenAI calls once everything is present, so running it again after a redeploy
 is harmless.
 
+> **The idempotency key is Postgres ONLY.** A document is skipped when a row with
+> that filename is already `completed`; the seed never checks whether its vectors
+> are actually in Chroma. That makes a re-run a no-op for repair whenever the two
+> stores have diverged — see "Recovering seeded state" below before reaching for
+> it in an incident.
+
 ---
 
 ## 6. End-to-end verification, then prove state survives a redeploy
@@ -218,5 +224,36 @@ If step 11 passes, the state strategy is proven, not assumed.
 
 - A bad deploy: Railway → service → Deployments → redeploy a previous green build.
 - Rotating `OPENAI_API_KEY`: update the variable and redeploy; no code change.
-- The demo account is shared, so any visitor can delete the seeded documents.
-  Re-run step 5 to restore them (idempotent).
+
+### Recovering seeded state
+
+Which repair works depends on **why** the demo is broken, because the seed can
+only fix one of the two cases.
+
+**Case A — a visitor deleted the documents.** Re-run step 5. A delete through the
+API removes the Postgres rows *and* both Chroma collections
+(`app/api/v1/documents.py`), so nothing is left to skip on and the seed
+re-ingests cleanly.
+
+**Case B — the volume was lost or replaced, with Postgres intact.** The startup
+consistency check reports this loudly (`pg_chunks > 0` while `chroma_chunks == 0`)
+and blocks the boot. **Re-running the seed does NOT fix it.** Its skip condition
+only looks at Postgres, where the rows still say `completed`, so it reports
+"skipped" for every document and exits 0 while the demo can retrieve nothing.
+The detector works; a bare re-seed is not the repair.
+
+The repair is to remove the rows first, so the seed has something to do:
+
+1. Log in as the demo user and delete every document on `/documents`. This is the
+   simplest path and needs no shell — the delete endpoint clears both stores, and
+   the missing vectors make the Chroma half a harmless no-op.
+2. Re-run step 5. All three documents re-ingest (this spends a few OpenAI calls:
+   embeddings plus one vision caption).
+3. Confirm the next boot logs `pg_chunks` and `chroma_chunks` in agreement.
+
+A partial divergence — some documents indexed, others not — shows the same
+symptom for the affected documents but does **not** trip the consistency check,
+which is deliberately asymmetric so a fresh deploy isn't blocked. The startup
+`INFO` line logging both counts every boot is what makes that case discoverable,
+so treat a persistent mismatch between the two numbers as a real signal, not
+noise. Same repair, applied to the affected documents.
