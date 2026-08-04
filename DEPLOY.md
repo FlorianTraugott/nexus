@@ -108,11 +108,24 @@ frontend cannot be built until the backend URL exists. Hence the ordering:
    |---|---|
    | `NEXT_PUBLIC_API_URL` | the backend URL from step 2 |
    | `NEXT_PUBLIC_DEMO_RESEARCH_TASK_ID` | `de300000-0000-4000-a000-000000000001` |
+   | `NEXT_PUBLIC_DEMO_EMAIL` | the same value as the backend's `DEMO_USER_EMAIL` |
+   | `NEXT_PUBLIC_DEMO_PASSWORD` | the same value as the backend's `DEMO_USER_PASSWORD` |
 
-   The second is the fixed id of the pre-seeded research task (a constant in
+   The research task id is the fixed id of the pre-seeded task (a constant in
    `scripts/seed_demo.py`), so the frontend's "example report" link can point at
    it. It is known in advance precisely because it is a hardcoded constant, not
    generated at seed time.
+
+   The last two put the shared demo credentials on the sign-in page, so a
+   visitor is not stopped by a login wall. Both must be set or the panel does not
+   render — and `/login` hides its "Create one" link on the same condition, so a
+   build that sets only one leaves a visitor with neither a sign-up nor a way in.
+   They must match the backend's `DEMO_USER_*` exactly, or the credentials shown
+   won't work.
+
+   > Publishing the password in the bundle is safe **only** because
+   > `REGISTRATION_ENABLED=false` and the demo account is shared and disposable.
+   > If registration is ever reopened, remove these two variables.
 3. Deploy the frontend. Copy **its** public URL.
 4. Back on the **backend** service, set `CORS_ORIGINS` to the frontend URL
    (exact origin, no trailing slash) and **redeploy the backend**.

@@ -64,3 +64,20 @@ export function mapAuthError(err: unknown): string {
   }
   return "Something went wrong. Please try again.";
 }
+
+// Sibling of mapAuthError for the REGISTER form (house pattern: siblings, not
+// one branching mapper). Only 403 differs and it differs completely: on login a
+// 403 is an inactive account, on register it is REGISTRATION_ENABLED=false, and
+// telling a visitor with no account that their account is inactive is a lie.
+// Everything else delegates, so the shared cases keep one home.
+//
+// This is the safety net for a direct-URL arrival. /register normally replaces
+// its form with the demo panel when credentials are published, so the reachable
+// path here is the drift case: registration closed server-side while this build
+// publishes no credentials.
+export function mapRegisterError(err: unknown): string {
+  if (isAxiosError(err) && err.response?.status === 403) {
+    return "Registration is closed on this demo. Use the demo credentials on the sign-in page.";
+  }
+  return mapAuthError(err);
+}

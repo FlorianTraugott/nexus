@@ -6,19 +6,29 @@ import Link from "next/link";
 
 import { useAuthStore } from "@/stores/auth";
 import { useRedirectWhenAuthenticated } from "@/hooks/use-redirect-when-authenticated";
-import { mapAuthError, validateEmail, validatePassword } from "@/lib/auth-forms";
+import {
+  mapRegisterError,
+  validateEmail,
+  validatePassword,
+} from "@/lib/auth-forms";
+import { isDemoAccessPublished } from "@/lib/demo";
+import { DemoCredentials } from "@/components/demo-credentials";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="flex min-h-full flex-1 items-center justify-center px-6 py-12">
+      <div className="w-full max-w-[26rem]">
+        <p className="font-mono text-meta uppercase text-ink-2">Nexus</p>
+        {children}
+      </div>
+    </main>
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -48,7 +58,7 @@ export default function RegisterPage() {
       await register(email, password);
       router.push("/");
     } catch (err) {
-      setError(mapAuthError(err));
+      setError(mapRegisterError(err));
     } finally {
       setSubmitting(false);
     }
@@ -62,17 +72,47 @@ export default function RegisterPage() {
     );
   }
 
+  // When this build publishes demo credentials, registration is closed and this
+  // form would 403 on every submit. Rendering it anyway — subordinate to a panel
+  // saying "use these instead" — is a confusing hierarchy and a small trap, so
+  // the page becomes the redirect it should be. Nobody arrives here by clicking
+  // (/login hides the link on this same guard); this is the direct-URL path.
+  if (isDemoAccessPublished()) {
+    return (
+      <PageShell>
+        <h1 className="mt-3 text-title text-balance">
+          Registration is closed on this demo
+        </h1>
+        <p className="mt-3 text-sm text-ink-2">
+          This deployment runs on a single shared account. Use the credentials
+          below — its document corpus is already loaded.
+        </p>
+        <div className="mt-8">
+          <DemoCredentials />
+        </div>
+        <Link
+          href="/login"
+          className="mt-5 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Go to sign in →
+        </Link>
+      </PageShell>
+    );
+  }
+
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Create account</CardTitle>
-          <CardDescription>
-            Sign up to start building your document workspace.
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={onSubmit} noValidate>
-          <CardContent className="flex flex-col gap-4">
+    <PageShell>
+      <h1 className="mt-3 text-display text-balance">
+        Build a corpus worth asking.
+      </h1>
+      <p className="mt-3 text-sm text-ink-2">
+        Upload your documents, then ask questions that get answered from them.
+      </p>
+
+      <Card className="mt-8">
+        <CardContent className="flex flex-col gap-5">
+          <h2 className="text-section">Create account</h2>
+          <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -101,24 +141,29 @@ export default function RegisterPage() {
                 disabled={submitting}
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                8–72 characters.
-              </p>
+              <p className="text-meta text-ink-2">8–72 characters.</p>
             </div>
-          </CardContent>
-          <CardFooter className="mt-4 flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-1 w-full"
+              disabled={submitting}
+            >
               {submitting ? "Creating account…" : "Create account"}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
       </Card>
-    </main>
+
+      <p className="mt-5 text-sm text-ink-2">
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Sign in
+        </Link>
+      </p>
+    </PageShell>
   );
 }
