@@ -1,10 +1,8 @@
 "use client";
 
-// The documents manager — READ path (9D.1a). Lists the user's corpus with an
-// ingestion-status badge. No polling/upload/delete yet (9D.1b/9D.2/9D.3).
+// The documents manager: list (status-aware polling), upload, delete.
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { Trash2 } from "lucide-react";
@@ -12,7 +10,9 @@ import { Trash2 } from "lucide-react";
 import { useDocuments } from "@/hooks/use-documents";
 import { useUploadDocument } from "@/hooks/use-upload-document";
 import { useDeleteDocument } from "@/hooks/use-delete-document";
+import { PageHeader } from "@/components/page-header";
 import { ProtectedRoute } from "@/components/protected-route";
+import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -26,34 +26,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DOCUMENT_STATUS_DISPLAY } from "@/lib/documents";
 import { mapDeleteError, mapUploadError } from "@/lib/documents-forms";
-import { cn } from "@/lib/utils";
-import type { DocumentRead, DocumentStatus } from "@/types/api";
-
-// status -> badge classes, keyed by EVERY DocumentStatus. Typed as a Record so a
-// new backend status becomes a compile error here, not a silently blank badge —
-// fail loud at the boundary.
-const STATUS_BADGE: Record<DocumentStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 ring-amber-600/20",
-  processing: "bg-blue-100 text-blue-800 ring-blue-600/20",
-  completed: "bg-green-100 text-green-800 ring-green-600/20",
-  failed: "bg-red-100 text-red-800 ring-red-600/20",
-};
-
-function StatusBadge({ status }: { status: DocumentStatus }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-        STATUS_BADGE[status],
-      )}
-    >
-      {status}
-    </span>
-  );
-}
+import type { DocumentRead } from "@/types/api";
 
 function DeleteControl({ doc }: { doc: DocumentRead }) {
   const [open, setOpen] = useState(false);
@@ -90,8 +66,12 @@ function DeleteControl({ doc }: { doc: DocumentRead }) {
         render={
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             aria-label={`Delete ${doc.filename}`}
+            // Always visible — see the same note in app/chat/layout.tsx: a
+            // hover-revealed control is unreachable on touch, because Tailwind
+            // v4's hover variants live inside @media (hover: hover).
+            className="text-muted-foreground hover:text-destructive"
           />
         }
       >
@@ -126,21 +106,20 @@ function DeleteControl({ doc }: { doc: DocumentRead }) {
 }
 
 function DocumentRow({ doc }: { doc: DocumentRead }) {
+  const { tone, label } = DOCUMENT_STATUS_DISPLAY[doc.status];
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate font-medium">{doc.filename}</p>
-          <p className="text-xs text-muted-foreground">
-            {doc.chunk_count} chunks · {new Date(doc.created_at).toLocaleString()}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <StatusBadge status={doc.status} />
-          <DeleteControl doc={doc} />
-        </div>
-      </CardContent>
-    </Card>
+    // A row in a shared surface, not a Card of its own: a list of N boxes is the
+    // same "outline around everything" tell, repeated N times.
+    <li className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/40">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{doc.filename}</p>
+        <p className="mt-1 font-mono text-meta text-ink-2">
+          {doc.chunk_count} chunks · {new Date(doc.created_at).toLocaleString()}
+        </p>
+      </div>
+      <StatusBadge tone={tone} label={label} />
+      <DeleteControl doc={doc} />
+    </li>
   );
 }
 
@@ -164,7 +143,7 @@ function UploadControl() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
           key={inputKey}
           type="file"
@@ -174,12 +153,19 @@ function UploadControl() {
             setFile(e.target.files?.[0] ?? null);
             reset(); // drop a stale error when a new file is chosen
           }}
-          className="max-w-sm"
+          className="sm:max-w-sm"
         />
-        <Button type="submit" disabled={!file || isPending}>
+        <Button
+          type="submit"
+          disabled={!file || isPending}
+          className="sm:shrink-0"
+        >
           {isPending ? "Uploading…" : "Upload"}
         </Button>
       </div>
+      <p className="font-mono text-meta text-ink-2">
+        PDF, TXT or Markdown · up to 25 MB
+      </p>
       {isError && (
         <Alert variant="destructive">
           <AlertTitle>Upload failed</AlertTitle>
@@ -194,7 +180,7 @@ function DocumentsList() {
   const { data, isPending, isError, error } = useDocuments();
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <p className="text-sm text-ink-2">Loading…</p>;
   }
 
   if (isError) {
@@ -210,44 +196,42 @@ function DocumentsList() {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed p-10 text-center">
-        <p className="text-sm font-medium">No documents yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upload a PDF or text file to build your corpus.
+      <div className="rounded-xl bg-card px-6 py-12 text-center shadow-xs">
+        <p className="text-section">No documents yet</p>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-ink-2">
+          Upload a PDF, text or Markdown file above. Once it finishes indexing,
+          you can ask questions against it in Chat.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <ul className="divide-y overflow-hidden rounded-xl bg-card shadow-xs">
       {data.map((doc) => (
         <DocumentRow key={doc.id} doc={doc} />
       ))}
-    </div>
+    </ul>
   );
 }
 
 export default function DocumentsPage() {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-full flex-1 flex-col">
-        <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
-          <Link
-            href="/"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            ← Workspace
-          </Link>
-          <h1 className="mt-2 font-heading text-xl font-medium">Documents</h1>
-          <div className="mt-6">
-            <UploadControl />
-          </div>
-          <div className="mt-6">
-            <DocumentsList />
-          </div>
-        </main>
-      </div>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
+        <PageHeader
+          backHref="/"
+          backLabel="Workspace"
+          title="Documents"
+          description="Your corpus. Everything uploaded here is chunked, embedded and indexed — and it is the only thing answers are allowed to draw on."
+        />
+        <div className="mt-8">
+          <UploadControl />
+        </div>
+        <div className="mt-8">
+          <DocumentsList />
+        </div>
+      </main>
     </ProtectedRoute>
   );
 }

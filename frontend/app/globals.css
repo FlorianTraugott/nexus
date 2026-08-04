@@ -51,6 +51,18 @@
      --ink-1 and --ink-3, so this middle level — which shadcn has no name for —
      is the only one needing its own utility (text-ink-2). */
   --color-ink-2: var(--ink-2);
+
+  /* Status tones. Shared PRESENTATION vocabulary — which status is good news is
+     domain knowledge and stays in lib/documents.ts and lib/research.ts, each as
+     an exhaustive Record over its own enum. */
+  --color-tone-neutral: var(--tone-neutral);
+  --color-tone-neutral-surface: var(--tone-neutral-surface);
+  --color-tone-active: var(--tone-active);
+  --color-tone-active-surface: var(--tone-active-surface);
+  --color-tone-good: var(--tone-good);
+  --color-tone-good-surface: var(--tone-good-surface);
+  --color-tone-bad: var(--tone-bad);
+  --color-tone-bad-surface: var(--tone-bad-surface);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -113,6 +125,29 @@
   --input: oklch(0.66 0.012 253);
   --ring: var(--ultramarine);
   --radius: 0.5rem;
+
+  /* Status tones. THREE OF THE FOUR ARE DERIVATIONS, not new colours — hue
+     stays rationed and there is one knob per hue:
+       neutral = --ink-2       (queued: not started, so not a state worth a hue)
+       active  = --ultramarine (the accent already means "the live thing")
+       bad     = --destructive (the SAME token the destructive Alert uses, so a
+                                failed-status pill and an error panel can never
+                                drift into two different reds)
+     Only `good` introduces a colour, because nothing existing meant success.
+     Consequence worth knowing: dark mode comes free for three of them, since
+     --ink-2, --ultramarine and --destructive are already overridden below.
+
+     Surfaces are mixed from the ink into --card, so a tone is defined once and
+     its tint follows automatically — including in dark, where --card differs.
+     Measured ink-on-surface: 6.5 / 6.9 / 5.4 / 5.4 : 1 light, all ≥ 4.5 dark. */
+  --tone-neutral: var(--ink-2);
+  --tone-active: var(--ultramarine);
+  --tone-good: oklch(0.47 0.1 158);
+  --tone-bad: var(--destructive);
+  --tone-neutral-surface: color-mix(in oklch, var(--tone-neutral) 12%, var(--card));
+  --tone-active-surface: color-mix(in oklch, var(--tone-active) 12%, var(--card));
+  --tone-good-surface: color-mix(in oklch, var(--tone-good) 12%, var(--card));
+  --tone-bad-surface: color-mix(in oklch, var(--tone-bad) 12%, var(--card));
 }
 
 /* Nothing applies this class today: there is no theme toggle and no
@@ -144,6 +179,15 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(0.55 0.012 253);
   --ring: var(--ultramarine);
+
+  /* Only `good` needs restating: the other three follow --ink-2, --ultramarine
+     and --destructive, which are already dark-adjusted above. The surfaces
+     re-mix themselves against the dark --card with no further overrides. */
+  --tone-good: oklch(0.72 0.12 158);
+  --tone-neutral-surface: color-mix(in oklch, var(--tone-neutral) 18%, var(--card));
+  --tone-active-surface: color-mix(in oklch, var(--tone-active) 18%, var(--card));
+  --tone-good-surface: color-mix(in oklch, var(--tone-good) 18%, var(--card));
+  --tone-bad-surface: color-mix(in oklch, var(--tone-bad) 18%, var(--card));
 }
 
 @layer base {
